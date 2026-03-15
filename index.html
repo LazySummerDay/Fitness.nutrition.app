@@ -174,14 +174,42 @@
             if(confirm("Reset nutrition?")) { db.nutrition.consumed = { cal: 0, pro: 0 }; save(); }
         }
 
-        function exportData() {
-            alert(JSON.stringify(db)); // Simplest mobile backup
+                function exportData() {
+            const dataStr = JSON.stringify(db);
+            // Create a temporary text area to show the data
+            const container = document.getElementById('data-tab');
+            const exportBox = document.createElement('textarea');
+            exportBox.style.width = '100%';
+            exportBox.style.height = '150px';
+            exportBox.style.marginTop = '10px';
+            exportBox.style.background = '#000';
+            exportBox.style.color = '#03dac6';
+            exportBox.style.border = '1px solid #333';
+            exportBox.value = dataStr;
+            
+            alert("Your data is shown below. Long-press it, 'Select All', and 'Copy' to save it to your Notes.");
+            container.appendChild(exportBox);
+            exportBox.select();
         }
 
         function importData() {
-            const json = prompt("Paste backup:");
-            if (json) { db = JSON.parse(json); save(); location.reload(); }
+            const json = prompt("Paste your backup text here:");
+            if (json) { 
+                try { 
+                    const parsed = JSON.parse(json);
+                    // Check if the data looks correct before saving
+                    if(parsed.routines) {
+                        db = parsed; 
+                        save(); 
+                        alert("Data imported successfully!");
+                        location.reload(); 
+                    }
+                } catch(e) { 
+                    alert("Error: That doesn't look like valid backup text."); 
+                } 
+            }
         }
+
 
         function updateUI() {
             document.getElementById('goal-cal').value = db.nutrition.goals.cal;
