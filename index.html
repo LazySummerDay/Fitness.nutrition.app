@@ -8,7 +8,6 @@
     <link rel="apple-touch-icon" href="icon.png.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FlexJournal">
 
     <style>
         :root {
@@ -16,6 +15,14 @@
             --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679;
         }
         body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px;}
+        
+        /* Timer Bar */
+        #timer-bar { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 4px; 
+            background: var(--secondary); transform: scaleX(0); transform-origin: left; transition: transform 1s linear; z-index: 100;
+        }
+        .timer-active { height: 40px !important; display: flex; align-items: center; justify-content: center; font-weight: bold; background: #333 !important; }
+
         .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
         .tab { flex: 1; padding: 10px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
         .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
@@ -23,7 +30,6 @@
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
         .workout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h2 { margin: 0; color: var(--primary); cursor: pointer; font-size: 1.2rem; }
-        h2::after { content: ' ✎'; font-size: 12px; opacity: 0.5; }
         
         .exercise-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap: 8px; margin-bottom: 12px; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; }
         input { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px;}
@@ -38,13 +44,14 @@
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
         
         .food-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .del-btn { color: var(--error); background: none; border: none; font-size: 12px; }
         button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
         .hidden { display: none; }
         label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; }
     </style>
 </head>
 <body>
+
+    <div id="timer-display" style="display:none; position:fixed; top:0; width:100%; background:var(--secondary); color:black; text-align:center; padding:5px; font-weight:bold; z-index:1000;">REST: <span id="seconds">60</span>s</div>
 
     <div class="tab-bar">
         <div class="tab active" onclick="showTab('workout')">Workouts</div>
@@ -68,61 +75,64 @@
                 <div class="progress-label"><span>Protein</span><span id="pro-text">0g / 150g</span></div>
                 <div class="progress-bar"><div id="pro-fill" class="progress-fill" style="background:var(--secondary)"></div></div>
             </div>
-            <p id="ai-suggestion" style="font-style: italic; color: #aaa; font-size: 13px;"></p>
+            <button class="main-btn" style="background:#444; font-size:12px; padding:5px;" onclick="resetDailyNutrition()">Reset Daily Totals</button>
         </div>
-
         <div class="card">
             <h2>Add Food</h2>
-            <input type="text" id="food-input" placeholder="Search (Chicken, Rice, Steak, Pasta)...">
+            <input type="text" id="food-input" placeholder="Search (Chicken, Rice, Egg)...">
             <div id="food-results"></div>
         </div>
     </div>
 
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
-            <h2>Set Daily Goals</h2>
+            <h2>Goals</h2>
             <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label>Calories</label>
-                    <input type="number" id="goal-cal" oninput="db.nutrition.goals.cal=parseInt(this.value)||0;save()">
-                </div>
-                <div style="flex: 1;">
-                    <label>Protein (g)</label>
-                    <input type="number" id="goal-pro" oninput="db.nutrition.goals.pro=parseInt(this.value)||0;save()">
-                </div>
+                <div style="flex: 1;"><label>Calories</label><input type="number" id="goal-cal" oninput="db.nutrition.goals.cal=parseInt(this.value)||0;save()"></div>
+                <div style="flex: 1;"><label>Protein (g)</label><input type="number" id="goal-pro" oninput="db.nutrition.goals.pro=parseInt(this.value)||0;save()"></div>
             </div>
         </div>
-
         <div class="card">
-            <h2>Backup & Data</h2>
-            <button class="main-btn" onclick="exportData()">Export Data</button>
-            <button class="main-btn" style="background:#444;" onclick="importData()">Import Data</button>
-            <button class="main-btn" style="background:var(--error); margin-top: 40px;" onclick="if(confirm('Clear all data?')) {localStorage.clear(); location.reload();}">Reset Entire App</button>
+            <h2>Data Management</h2>
+            <button class="main-btn" onclick="exportData()">Export Backup</button>
+            <button class="main-btn" style="background:#444;" onclick="importData()">Import Backup</button>
         </div>
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('gymDataV3')) || {
-            routines: [
-                { id: 1, name: 'Workout A', exercises: [] },
-                { id: 2, name: 'Workout B', exercises: [] }
-            ],
+        let db = JSON.parse(localStorage.getItem('gymDataV4')) || {
+            routines: [{ id: 1, name: 'Workout A', exercises: [] }, { id: 2, name: 'Workout B', exercises: [] }],
             nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } }
         };
 
         const foodDB = [
-            { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" },
-            { name: "White Rice", cal: 130, pro: 2.7, unit: "100g" },
-            { name: "Egg", cal: 70, pro: 6, unit: "1 large" },
-            { name: "Almonds", cal: 160, pro: 6, unit: "handful" },
-            { name: "Greek Yogurt", cal: 100, pro: 10, unit: "100g" },
-            { name: "Protein Shake", cal: 120, pro: 24, unit: "1 scoop" },
-            { name: "Oatmeal", cal: 150, pro: 5, unit: "1 cup" },
-            { name: "Peanut Butter", cal: 190, pro: 8, unit: "2 tbsp" },
-            { name: "Steak", cal: 250, pro: 26, unit: "100g" }
+            { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" }, { name: "White Rice", cal: 130, pro: 2.7, unit: "100g" },
+            { name: "Egg", cal: 70, pro: 6, unit: "1 large" }, { name: "Almonds", cal: 160, pro: 6, unit: "handful" },
+            { name: "Protein Shake", cal: 120, pro: 24, unit: "1 scoop" }, { name: "Steak", cal: 250, pro: 26, unit: "100g" }
         ];
 
-        function save() { localStorage.setItem('gymDataV3', JSON.stringify(db)); updateUI(); }
+        let timerInterval;
+        function startTimer(duration = 60) {
+            clearInterval(timerInterval);
+            let timeLeft = duration;
+            const display = document.getElementById('timer-display');
+            const secondsText = document.getElementById('seconds');
+            display.style.display = 'block';
+            display.style.background = 'var(--secondary)';
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                secondsText.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    display.style.background = 'var(--error)';
+                    if (window.navigator.vibrate) window.navigator.vibrate([200, 100, 200]);
+                    setTimeout(() => display.style.display = 'none', 5000);
+                }
+            }, 1000);
+        }
+
+        function save() { localStorage.setItem('gymDataV4', JSON.stringify(db)); updateUI(); }
 
         function showTab(tab) {
             document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
@@ -132,110 +142,80 @@
         }
 
         function createWorkout() {
-            const name = prompt("Name this workout:", "New Workout");
+            const name = prompt("Name:");
             if(name) { db.routines.push({ id: Date.now(), name: name, exercises: [] }); save(); }
-        }
-
-        function renameWorkout(id) {
-            const r = db.routines.find(r => r.id === id);
-            const newName = prompt("Rename workout:", r.name);
-            if(newName) { r.name = newName; save(); }
-        }
-
-        function deleteWorkout(id) {
-            if(confirm("Delete this entire workout?")) {
-                db.routines = db.routines.filter(r => r.id !== id);
-                save();
-            }
-        }
-
-        function addExercise(routineId) {
-            const name = prompt("Exercise name:");
-            if (name) {
-                const r = db.routines.find(r => r.id === routineId);
-                r.exercises.push({ name, weight: "", reps: "", setsDone: 0, targetSets: 3 });
-                save();
-            }
         }
 
         function updateSets(routineId, exIndex, change) {
             const r = db.routines.find(r => r.id === routineId);
             r.exercises[exIndex].setsDone = Math.max(0, r.exercises[exIndex].setsDone + change);
+            if (change > 0) startTimer(60); // Auto-timer on set completion
             save();
+        }
+
+        function addExercise(routineId) {
+            const name = prompt("Exercise name:");
+            if (name) {
+                db.routines.find(r => r.id === routineId).exercises.push({ name, weight: "", reps: "", setsDone: 0, targetSets: 3 });
+                save();
+            }
         }
 
         function addFood(index) {
             const food = foodDB[index];
-            const ratio = parseFloat(prompt(`How many servings (${food.unit})?`, "1")) || 0;
+            const ratio = parseFloat(prompt(`Servings (${food.unit})?`, "1")) || 0;
             db.nutrition.consumed.cal += Math.round(food.cal * ratio);
             db.nutrition.consumed.pro += Math.round(food.pro * ratio);
             save();
             document.getElementById('food-results').innerHTML = "";
-            document.getElementById('food-input').value = "";
+        }
+
+        function resetDailyNutrition() {
+            if(confirm("Reset nutrition?")) { db.nutrition.consumed = { cal: 0, pro: 0 }; save(); }
         }
 
         function exportData() {
-            const blob = new Blob([JSON.stringify(db)], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = "fitness_backup.json"; a.click();
+            alert(JSON.stringify(db)); // Simplest mobile backup
         }
 
         function importData() {
-            const json = prompt("Paste your backup JSON here:");
-            if (json) { try { db = JSON.parse(json); save(); location.reload(); } catch(e) { alert("Invalid data"); } }
+            const json = prompt("Paste backup:");
+            if (json) { db = JSON.parse(json); save(); location.reload(); }
         }
 
         function updateUI() {
-            // Fill goal inputs in settings
             document.getElementById('goal-cal').value = db.nutrition.goals.cal;
             document.getElementById('goal-pro').value = db.nutrition.goals.pro;
-
             const container = document.getElementById('workout-container');
             container.innerHTML = db.routines.map(r => `
                 <div class="card">
-                    <div class="workout-header">
-                        <h2 onclick="renameWorkout(${r.id})">${r.name}</h2>
-                        <button class="del-btn" onclick="deleteWorkout(${r.id})">Delete</button>
-                    </div>
+                    <div class="workout-header"><h2 onclick="renameWorkout(${r.id})">${r.name}</h2></div>
                     ${r.exercises.map((ex, i) => `
                         <div class="exercise-row">
-                            <span style="font-size:13px; font-weight:bold;">${ex.name}</span>
-                            <input type="text" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()" placeholder="kg">
-                            <input type="number" value="${ex.reps}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()" placeholder="reps">
+                            <span style="font-size:12px;">${ex.name}</span>
+                            <input type="text" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
+                            <input type="number" value="${ex.reps}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
                             <div class="set-controls">
                                 <button class="undo-btn" onclick="updateSets(${r.id}, ${i}, -1)">↺</button>
                                 <button class="set-btn" onclick="updateSets(${r.id}, ${i}, 1)">${ex.setsDone}/${ex.targetSets}</button>
                             </div>
                         </div>
                     `).join('')}
-                    <button class="main-btn" onclick="addExercise(${r.id})">+ Add Exercise</button>
+                    <button class="main-btn" onclick="addExercise(${r.id})">+ Exercise</button>
                 </div>
             `).join('');
-
             const n = db.nutrition;
-            const calPct = (n.consumed.cal / n.goals.cal) * 100;
-            const proPct = (n.consumed.pro / n.goals.pro) * 100;
-            document.getElementById('cal-fill').style.width = Math.min(calPct, 100) + '%';
-            document.getElementById('pro-fill').style.width = Math.min(proPct, 100) + '%';
+            document.getElementById('cal-fill').style.width = Math.min((n.consumed.cal/n.goals.cal)*100, 100) + '%';
+            document.getElementById('pro-fill').style.width = Math.min((n.consumed.pro/n.goals.pro)*100, 100) + '%';
             document.getElementById('cal-text').innerText = `${n.consumed.cal} / ${n.goals.cal}`;
-            document.getElementById('pro-text').innerText = `${n.consumed.pro}g / ${n.goals.pro}g`;
-
-            const calRem = n.goals.cal - n.consumed.cal;
-            const proRem = n.goals.pro - n.consumed.pro;
-            document.getElementById('ai-suggestion').innerText = calRem > 0 
-                ? `Need ${calRem}kcal and ${Math.max(0, proRem)}g protein. Try some ${proRem > 10 ? 'chicken' : 'almonds'}!`
-                : "Goals met! Great work today.";
+            document.getElementById('pro-text').innerText = `${n.consumed.pro} / ${n.goals.pro}`;
         }
 
         document.getElementById('food-input').addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
             const results = foodDB.filter(f => f.name.toLowerCase().includes(query));
             document.getElementById('food-results').innerHTML = query ? results.map((f) => `
-                <div class="food-item" onclick="addFood(${foodDB.indexOf(f)})">
-                    <span>${f.name} <small>(${f.cal} cal)</small></span>
-                    <span style="color:var(--secondary)">+ Add</span>
-                </div>
+                <div class="food-item" onclick="addFood(${foodDB.indexOf(f)})">${f.name} (+Add)</div>
             `).join('') : '';
         });
 
