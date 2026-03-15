@@ -4,27 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FlexJournal Pro</title>
+    
+    <link rel="apple-touch-icon" href="icon.png.jpeg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FlexJournal">
+
     <style>
         :root {
             --bg: #121212; --card: #1e1e1e; --text: #ffffff;
             --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679;
         }
-        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 50px;}
+        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px;}
         .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
         .tab { flex: 1; padding: 10px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
         .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
         
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
         .workout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h2 { margin: 0; color: var(--primary); cursor: pointer; }
-        h2::after { content: ' ✎'; font-size: 12px; vertical-align: middle; opacity: 0.5; }
+        h2 { margin: 0; color: var(--primary); cursor: pointer; font-size: 1.2rem; }
+        h2::after { content: ' ✎'; font-size: 12px; opacity: 0.5; }
         
-        .exercise-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap: 8px; margin-bottom: 12px; align-items: center; }
-        input { background: #333; border: none; color: white; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box; font-size: 14px;}
+        .exercise-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap: 8px; margin-bottom: 12px; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; }
+        input { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px;}
         
         .set-controls { display: flex; gap: 4px; }
-        .set-btn { flex: 2; background: var(--secondary); border: none; padding: 8px; border-radius: 4px; color: #000; font-weight: bold; font-size: 12px;}
-        .undo-btn { flex: 1; background: #444; border: none; padding: 8px; border-radius: 4px; color: white; font-size: 12px; }
+        .set-btn { flex: 2; background: var(--secondary); border: none; padding: 10px; border-radius: 6px; color: #000; font-weight: bold; font-size: 12px;}
+        .undo-btn { flex: 1; background: #444; border: none; padding: 10px; border-radius: 6px; color: white; font-size: 12px; }
 
         .progress-container { margin: 15px 0; }
         .progress-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
@@ -32,9 +38,10 @@
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
         
         .food-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .del-btn { color: var(--error); background: none; border: none; font-size: 12px; padding: 10px; }
-        button.main-btn { width: 100%; padding: 12px; background: var(--primary); border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; color: black; }
+        .del-btn { color: var(--error); background: none; border: none; font-size: 12px; }
+        button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
         .hidden { display: none; }
+        label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; }
     </style>
 </head>
 <body>
@@ -42,12 +49,12 @@
     <div class="tab-bar">
         <div class="tab active" onclick="showTab('workout')">Workouts</div>
         <div class="tab" onclick="showTab('nutrition')">Nutrition</div>
-        <div class="tab" onclick="showTab('data')">Data</div>
+        <div class="tab" onclick="showTab('data')">Settings</div>
     </div>
 
     <div id="workout-tab" class="content-tab">
         <div id="workout-container"></div>
-        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ Create New Workout Type</button>
+        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ New Workout Type</button>
     </div>
 
     <div id="nutrition-tab" class="content-tab hidden">
@@ -66,25 +73,39 @@
 
         <div class="card">
             <h2>Add Food</h2>
-            <input type="text" id="food-input" placeholder="Search (Chicken, Rice, Egg, Almonds)..." style="margin-bottom: 10px;">
+            <input type="text" id="food-input" placeholder="Search (Chicken, Rice, Steak, Pasta)...">
             <div id="food-results"></div>
         </div>
     </div>
 
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
-            <h2>Settings & Backup</h2>
-            <button class="main-btn" onclick="exportData()">Export Data (Save to Notes)</button>
+            <h2>Set Daily Goals</h2>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Calories</label>
+                    <input type="number" id="goal-cal" oninput="db.nutrition.goals.cal=parseInt(this.value)||0;save()">
+                </div>
+                <div style="flex: 1;">
+                    <label>Protein (g)</label>
+                    <input type="number" id="goal-pro" oninput="db.nutrition.goals.pro=parseInt(this.value)||0;save()">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Backup & Data</h2>
+            <button class="main-btn" onclick="exportData()">Export Data</button>
             <button class="main-btn" style="background:#444;" onclick="importData()">Import Data</button>
-            <button class="main-btn" style="background:var(--error); margin-top: 40px;" onclick="if(confirm('Clear all data?')) {localStorage.clear(); location.reload();}">Reset App</button>
+            <button class="main-btn" style="background:var(--error); margin-top: 40px;" onclick="if(confirm('Clear all data?')) {localStorage.clear(); location.reload();}">Reset Entire App</button>
         </div>
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('gymDataV2')) || {
+        let db = JSON.parse(localStorage.getItem('gymDataV3')) || {
             routines: [
-                { id: Date.now(), name: 'Workout A', exercises: [] },
-                { id: Date.now()+1, name: 'Workout B', exercises: [] }
+                { id: 1, name: 'Workout A', exercises: [] },
+                { id: 2, name: 'Workout B', exercises: [] }
             ],
             nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } }
         };
@@ -95,10 +116,13 @@
             { name: "Egg", cal: 70, pro: 6, unit: "1 large" },
             { name: "Almonds", cal: 160, pro: 6, unit: "handful" },
             { name: "Greek Yogurt", cal: 100, pro: 10, unit: "100g" },
-            { name: "Protein Shake", cal: 120, pro: 24, unit: "1 scoop" }
+            { name: "Protein Shake", cal: 120, pro: 24, unit: "1 scoop" },
+            { name: "Oatmeal", cal: 150, pro: 5, unit: "1 cup" },
+            { name: "Peanut Butter", cal: 190, pro: 8, unit: "2 tbsp" },
+            { name: "Steak", cal: 250, pro: 26, unit: "100g" }
         ];
 
-        function save() { localStorage.setItem('gymDataV2', JSON.stringify(db)); updateUI(); }
+        function save() { localStorage.setItem('gymDataV3', JSON.stringify(db)); updateUI(); }
 
         function showTab(tab) {
             document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
@@ -107,13 +131,9 @@
             event.currentTarget.classList.add('active');
         }
 
-        // WORKOUT FUNCTIONS
         function createWorkout() {
-            const name = prompt("Name this workout (e.g. Leg Day):", "New Workout");
-            if(name) {
-                db.routines.push({ id: Date.now(), name: name, exercises: [] });
-                save();
-            }
+            const name = prompt("Name this workout:", "New Workout");
+            if(name) { db.routines.push({ id: Date.now(), name: name, exercises: [] }); save(); }
         }
 
         function renameWorkout(id) {
@@ -144,7 +164,6 @@
             save();
         }
 
-        // NUTRITION FUNCTIONS
         function addFood(index) {
             const food = foodDB[index];
             const ratio = parseFloat(prompt(`How many servings (${food.unit})?`, "1")) || 0;
@@ -156,18 +175,22 @@
         }
 
         function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-            alert("Copy the URL in the next screen or save the file to your device.");
-            window.open(dataStr);
+            const blob = new Blob([JSON.stringify(db)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = "fitness_backup.json"; a.click();
         }
 
         function importData() {
-            const json = prompt("Paste your backup JSON string here:");
-            if (json) { try { db = JSON.parse(json); save(); } catch(e) { alert("Invalid data"); } }
+            const json = prompt("Paste your backup JSON here:");
+            if (json) { try { db = JSON.parse(json); save(); location.reload(); } catch(e) { alert("Invalid data"); } }
         }
 
-        // RENDER UI
         function updateUI() {
+            // Fill goal inputs in settings
+            document.getElementById('goal-cal').value = db.nutrition.goals.cal;
+            document.getElementById('goal-pro').value = db.nutrition.goals.pro;
+
             const container = document.getElementById('workout-container');
             container.innerHTML = db.routines.map(r => `
                 <div class="card">
@@ -177,8 +200,8 @@
                     </div>
                     ${r.exercises.map((ex, i) => `
                         <div class="exercise-row">
-                            <span style="font-size:14px; font-weight:bold;">${ex.name}</span>
-                            <input type="number" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()" placeholder="kg">
+                            <span style="font-size:13px; font-weight:bold;">${ex.name}</span>
+                            <input type="text" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()" placeholder="kg">
                             <input type="number" value="${ex.reps}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()" placeholder="reps">
                             <div class="set-controls">
                                 <button class="undo-btn" onclick="updateSets(${r.id}, ${i}, -1)">↺</button>
@@ -201,8 +224,8 @@
             const calRem = n.goals.cal - n.consumed.cal;
             const proRem = n.goals.pro - n.consumed.pro;
             document.getElementById('ai-suggestion').innerText = calRem > 0 
-                ? `You need ${calRem} more calories and ${proRem > 0 ? proRem : 0}g protein. Try some ${proRem > 10 ? 'chicken' : 'almonds'}!`
-                : "Daily goals reached! Great job.";
+                ? `Need ${calRem}kcal and ${Math.max(0, proRem)}g protein. Try some ${proRem > 10 ? 'chicken' : 'almonds'}!`
+                : "Goals met! Great work today.";
         }
 
         document.getElementById('food-input').addEventListener('input', (e) => {
