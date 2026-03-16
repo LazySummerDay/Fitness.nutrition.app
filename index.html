@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlexJournal Secure</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <title>FlexJournal Pro</title>
     
     <link rel="apple-touch-icon" href="icon.png.PNG">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,10 +16,6 @@
         }
         body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px;}
         
-        /* PIN Overlay */
-        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .pin-input { font-size: 24px; letter-spacing: 10px; text-align: center; width: 150px; background: #333; border: 1px solid var(--primary); color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
-
         .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
         .tab { flex: 1; padding: 10px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; border: 1px solid transparent; font-size: 14px; }
         .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
@@ -52,13 +46,6 @@
     </style>
 </head>
 <body>
-
-    <div id="auth-overlay">
-        <h2 style="margin-bottom:20px;">Enter PIN</h2>
-        <input type="password" id="pin-entry" class="pin-input" maxlength="4" inputmode="numeric">
-        <button class="main-btn" style="width:150px;" onclick="unlockApp()">Unlock</button>
-        <p id="auth-error" style="color:var(--error); margin-top:15px; display:none;">Incorrect PIN</p>
-    </div>
 
     <div id="timer-display">REST: <span id="seconds">60</span>s</div>
 
@@ -95,10 +82,6 @@
 
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
-            <h2>Security</h2>
-            <button class="main-btn" style="background:#444;" onclick="changePin()">Change 4-Digit PIN</button>
-        </div>
-        <div class="card">
             <h2>Data Management</h2>
             <button class="main-btn" onclick="exportData()">Export Backup Text</button>
             <button class="main-btn" style="background:#444;" onclick="importData()">Import Backup Text</button>
@@ -107,57 +90,23 @@
     </div>
 
     <script>
-        let userPin = localStorage.getItem('gymPin') || "0000"; // Default PIN
-        let db = { routines: [], nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } } };
+        let db = JSON.parse(localStorage.getItem('gymDataPlain')) || {
+            routines: [],
+            nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } }
+        };
 
-        // --- ENCRYPTION LOGIC ---
-        function save() {
-            const cipherText = CryptoJS.AES.encrypt(JSON.stringify(db), userPin).toString();
-            localStorage.setItem('gymDataSecure', cipherText);
-            updateUI();
-        }
+        const foodDB = [
+            { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" }, { name: "White Rice", cal: 130, pro: 2.7, unit: "100g" },
+            { name: "Egg", cal: 70, pro: 6, unit: "1 large" }, { name: "Protein Shake", cal: 120, pro: 24, unit: "1 scoop" },
+            { name: "Greek Yogurt", cal: 59, pro: 10, unit: "100g" }, { name: "Steak", cal: 250, pro: 26, unit: "100g" }
+        ];
 
-        function unlockApp() {
-            const entry = document.getElementById('pin-entry').value;
-            const encryptedData = localStorage.getItem('gymDataSecure');
-            
-            if (!encryptedData) {
-                // First time user
-                userPin = entry;
-                localStorage.setItem('gymPin', entry);
-                document.getElementById('auth-overlay').style.display = 'none';
-                save();
-                return;
-            }
-
-            try {
-                const bytes = CryptoJS.AES.decrypt(encryptedData, entry);
-                const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-                db = decryptedData;
-                userPin = entry;
-                document.getElementById('auth-overlay').style.display = 'none';
-                updateUI();
-            } catch (e) {
-                document.getElementById('auth-error').style.display = 'block';
-                document.getElementById('pin-entry').value = '';
-            }
-        }
-
-        function changePin() {
-            const old = prompt("Enter Current PIN:");
-            if (old === userPin) {
-                const newPin = prompt("Enter New 4-Digit PIN:");
-                if (newPin && newPin.length === 4) {
-                    userPin = newPin;
-                    localStorage.setItem('gymPin', newPin);
-                    save();
-                    alert("PIN Changed!");
-                }
-            } else { alert("Incorrect current PIN."); }
-        }
-
-        // --- REST OF APP LOGIC ---
         let timerInterval;
+        function save() { 
+            localStorage.setItem('gymDataPlain', JSON.stringify(db)); 
+            updateUI(); 
+        }
+
         function showTab(t) {
             document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
@@ -200,19 +149,32 @@
             }, 1000);
         }
 
+        function exportData() {
+            const s = JSON.stringify(db);
+            const t = document.createElement('textarea');
+            t.value = s; document.body.appendChild(t); t.select();
+            document.execCommand('copy'); document.body.removeChild(t);
+            alert("Data copied! Paste it into your Notes.");
+        }
+
+        function importData() {
+            const r = prompt("Paste backup text:");
+            if(r) { db = JSON.parse(r); save(); location.reload(); }
+        }
+
         function updateUI() {
             const cont = document.getElementById('workout-container');
             cont.innerHTML = db.routines.map(r => `
                 <div class="card">
-                    <div class="workout-header"><h2>${r.name}</h2></div>
+                    <div class="workout-header"><h2>${r.name}</h2> <span onclick="if(confirm('Delete?')){db.routines=db.routines.filter(x=>x.id!=${r.id});save()}" style="font-size:10px;opacity:0.4">Delete</span></div>
                     ${r.exercises.map((ex, i) => `
                         <div class="exercise-row">
                             <div class="ex-meta">
-                                <span style="color:var(--primary);">${ex.name}</span>
-                                <span onclick="if(confirm('Remove?')){db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()}" style="opacity:0.3;">✕</span>
+                                <span style="color:var(--primary); font-weight:bold;">${ex.name}</span>
+                                <span onclick="if(confirm('Remove?')){db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()}" style="color:var(--error); font-size:12px;">✕</span>
                             </div>
                             <div class="ex-controls">
-                                <input type="text" placeholder="wt" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
+                                <input type="text" placeholder="weight" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
                                 <select onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].units=this.value;save()">
                                     <option ${ex.units==='lb'?'selected':''}>lb</option>
                                     <option ${ex.units==='kg'?'selected':''}>kg</option>
@@ -236,7 +198,14 @@
             document.getElementById('pro-text').innerText = `${n.consumed.pro}g / ${n.goals.pro}g`;
         }
 
-        // Search logic remains same...
+        document.getElementById('food-input').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            const res = foodDB.filter(f => f.name.toLowerCase().includes(q));
+            document.getElementById('food-results').innerHTML = q ? res.map(f => `<div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between;" onclick="const r=parseFloat(prompt('How many?','1')); db.nutrition.consumed.cal+=Math.round(${f.cal}*r); db.nutrition.consumed.pro+=Math.round(${f.pro}*r); save();"><span>${f.name}</span> <span style="color:var(--secondary)">+</span></div>`).join('') : '';
+        });
+
+        function resetDailyNutrition() { if(confirm("Reset?")) { db.nutrition.consumed = { cal: 0, pro: 0 }; save(); } }
+        updateUI();
     </script>
 </body>
 </html>
