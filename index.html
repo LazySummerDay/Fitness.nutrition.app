@@ -14,40 +14,53 @@
             --bg: #121212; --card: #1e1e1e; --text: #ffffff;
             --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679;
         }
-        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px;}
+        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px;}
         
+        /* Navigation */
         .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
-        .tab { flex: 1; padding: 10px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; border: 1px solid transparent; font-size: 14px; }
+        .tab { flex: 1; padding: 12px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1px solid transparent; }
         .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
         
-        #timer-display { display:none; position:fixed; top:0; left:0; width:100%; background:var(--secondary); color:black; text-align:center; padding:8px; font-weight:bold; z-index:1000; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .workout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h2 { margin: 0; color: var(--primary); font-size: 1.2rem; }
+        /* Timer HUD */
+        #timer-display { display:none; position:fixed; top:0; left:0; width:100%; background:var(--secondary); color:black; text-align:center; padding:12px; font-weight:bold; z-index:1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .timer-btns { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
+        .t-btn { background: rgba(0,0,0,0.2); border: 1px solid black; padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+
+        /* Workout Cards */
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; overflow: hidden; }
+        .workout-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .workout-content { margin-top: 15px; transition: max-height 0.3s ease; }
+        .collapsed .workout-content { display: none; }
         
+        .date-input { background: transparent; border: none; color: #888; font-size: 12px; width: 100px; }
+        
+        /* Rows */
         .exercise-row { margin-bottom: 18px; border-bottom: 1px solid #2a2a2a; padding-bottom: 12px; }
         .ex-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .ex-controls { display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr; gap: 6px; align-items: center; }
+        .ex-controls { display: grid; grid-template-columns: 1fr 0.8fr 0.6fr 1.2fr; gap: 6px; align-items: center; }
         
         input, select { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px;}
-        .set-btn { flex: 2; background: var(--secondary); border: none; padding: 8px; border-radius: 6px; color: #000; font-weight: bold; font-size: 11px;}
-        .undo-btn { flex: 1; background: #444; border: none; padding: 8px; border-radius: 6px; color: white; font-size: 11px; }
+        .set-btn { background: var(--secondary); border: none; padding: 8px; border-radius: 6px; color: #000; font-weight: bold; width: 100%; }
 
-        .notes-row { margin-top: 8px; }
-        .notes-box { font-size: 12px; color: #aaa; background: rgba(51, 51, 51, 0.4); border: 1px solid #333; height: 30px; }
-
+        /* Settings/Nutrition */
         .progress-container { margin: 15px 0; }
-        .progress-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
         .progress-bar { background: #333; height: 10px; border-radius: 5px; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
         
         button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
         .hidden { display: none; }
+        .food-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
-    <div id="timer-display">REST: <span id="seconds">60</span>s</div>
+    <div id="timer-display">
+        REST: <span id="seconds">60</span>s
+        <div class="timer-btns">
+            <div class="t-btn" onclick="adjustTimer(30)">+30s</div>
+            <div class="t-btn" onclick="endTimer()">End Rest</div>
+        </div>
+    </div>
 
     <div class="tab-bar">
         <div class="tab active" onclick="showTab('workout')">Workouts</div>
@@ -57,55 +70,78 @@
 
     <div id="workout-tab" class="content-tab">
         <div id="workout-container"></div>
-        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ New Workout Type</button>
+        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ New Workout Category</button>
     </div>
 
     <div id="nutrition-tab" class="content-tab hidden">
         <div class="card">
             <h2>Daily Macros</h2>
             <div class="progress-container">
-                <div class="progress-label"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
+                <div class="progress-label" style="display:flex; justify-content:space-between"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
                 <div class="progress-bar"><div id="cal-fill" class="progress-fill"></div></div>
             </div>
             <div class="progress-container">
-                <div class="progress-label"><span>Protein</span><span id="pro-text">0g / 150g</span></div>
+                <div class="progress-label" style="display:flex; justify-content:space-between"><span>Protein</span><span id="pro-text">0g / 150g</span></div>
                 <div class="progress-bar"><div id="pro-fill" class="progress-fill" style="background:var(--secondary)"></div></div>
             </div>
-            <button class="main-btn" style="background:#444; font-size:12px; height:30px; padding:0;" onclick="resetDailyNutrition()">Reset Daily Totals</button>
+            <button class="main-btn" onclick="addCustomFood()" style="background:#444; color:white; font-size:12px;">+ Add Custom Item (Manual Entry)</button>
         </div>
         <div class="card">
-            <h2>Add Food</h2>
-            <input type="text" id="food-input" placeholder="Search (Chicken, Rice, Egg)...">
+            <input type="text" id="food-input" placeholder="Search (Beef, Milk, Cereal)...">
             <div id="food-results" style="margin-top:10px;"></div>
         </div>
     </div>
 
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
-            <h2>Data Management</h2>
-            <button class="main-btn" onclick="exportData()">Export Backup Text</button>
-            <button class="main-btn" style="background:#444;" onclick="importData()">Import Backup Text</button>
+            <h2>App Settings</h2>
+            <label style="font-size:12px; color:#888;">Default Rest Time (Seconds)</label>
+            <input type="number" id="rest-setting" onchange="db.settings.rest=parseInt(this.value);save()">
+            <button class="main-btn" style="margin-top:20px;" onclick="exportToFile()">Export Backup (.JSON)</button>
+            <label class="main-btn" style="background:#444; display:block; text-align:center; cursor:pointer;">
+                Import Backup (.JSON)
+                <input type="file" style="display:none;" onchange="importFromFile(this)">
+            </label>
             <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe everything?')){localStorage.clear();location.reload();}">Hard Reset App</button>
         </div>
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('gymDataPlain')) || {
+        const STORAGE_KEY = 'FlexJournal_v8';
+        let timerInterval;
+        let timeLeft = 0;
+
+        let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
             routines: [],
+            library: ["Bench Press", "Squat", "Deadlift"],
+            settings: { rest: 60, vibration: true },
             nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } }
         };
 
         const foodDB = [
-            { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" }, { name: "White Rice", cal: 130, pro: 2.7, unit: "100g" },
-            { name: "Egg", cal: 70, pro: 6, unit: "1 large" }, { name: "Protein Shake", cal: 120, pro: 24, unit: "1 scoop" },
-            { name: "Greek Yogurt", cal: 59, pro: 10, unit: "100g" }, { name: "Steak", cal: 250, pro: 26, unit: "100g" }
+            { name: "Ground Beef (80/20)", cal: 250, pro: 26, unit: "100g" },
+            { name: "Ground Beef (93/7)", cal: 170, pro: 26, unit: "100g" },
+            { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" },
+            { name: "Steak (Sirloin)", cal: 250, pro: 26, unit: "100g" },
+            { name: "Egg", cal: 70, pro: 6, unit: "1 large" },
+            { name: "Oats (Dry)", cal: 150, pro: 5, unit: "40g" },
+            { name: "Corn", cal: 86, pro: 3.2, unit: "100g" },
+            { name: "Chickpeas", cal: 164, pro: 8.9, unit: "100g" },
+            { name: "Lentils", cal: 116, pro: 9, unit: "100g" },
+            { name: "Black Beans", cal: 132, pro: 8.9, unit: "100g" },
+            { name: "Milk (1%)", cal: 42, pro: 3.4, unit: "100ml" },
+            { name: "Milk (2%)", cal: 50, pro: 3.3, unit: "100ml" },
+            { name: "Cereal (General)", cal: 380, pro: 8, unit: "100g" },
+            { name: "Pasta", cal: 131, pro: 5, unit: "100g" },
+            { name: "Quinoa", cal: 120, pro: 4.4, unit: "100g" },
+            { name: "Cheddar Cheese", cal: 400, pro: 25, unit: "100g" },
+            { name: "Broccoli", cal: 34, pro: 2.8, unit: "100g" },
+            { name: "Romanian Lettuce", cal: 17, pro: 1.2, unit: "100g" },
+            { name: "Cucumber", cal: 15, pro: 0.7, unit: "100g" },
+            { name: "Protein Powder", cal: 120, pro: 24, unit: "1 scoop" }
         ];
 
-        let timerInterval;
-        function save() { 
-            localStorage.setItem('gymDataPlain', JSON.stringify(db)); 
-            updateUI(); 
-        }
+        function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
 
         function showTab(t) {
             document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
@@ -115,82 +151,95 @@
         }
 
         function createWorkout() {
-            const n = prompt("Workout Name:");
-            if(n) { db.routines.push({ id: Date.now(), name: n, exercises: [] }); save(); }
+            const n = prompt("Workout Name (e.g., Push Day):");
+            if(n) { db.routines.push({ id: Date.now(), name: n, date: new Date().toISOString().split('T')[0], collapsed: false, exercises: [] }); save(); }
         }
 
-        function addExercise(rId) {
-            const n = prompt("Exercise Name:");
-            if(!n) return;
-            const type = confirm("OK for Weights, Cancel for Cardio") ? 'weights' : 'cardio';
-            db.routines.find(r => r.id === rId).exercises.push({ name: n, type, weight: "", units: "lb", reps: "", setsDone: 0, targetSets: 3, notes: "" });
+        function toggleCollapse(id) {
+            const r = db.routines.find(x => x.id === id);
+            r.collapsed = !r.collapsed;
             save();
         }
 
-        function updateSets(rId, i, c) {
-            const ex = db.routines.find(r => r.id === rId).exercises[i];
-            ex.setsDone = Math.max(0, ex.setsDone + c);
-            if (c > 0 && ex.type === 'weights') startTimer(60);
+        function addExercise(rId) {
+            let n;
+            const choice = confirm("Add from Saved Library? (Cancel to type new)");
+            if(choice) {
+                const list = db.library.join('\n');
+                n = prompt("Saved Exercises:\n" + list + "\n\nType the name precisely:");
+            } else {
+                n = prompt("New Exercise Name:");
+                if(n && !db.library.includes(n)) db.library.push(n);
+            }
+            if(!n) return;
+            db.routines.find(r => r.id === rId).exercises.push({ name: n, weight: "", units: "lb", reps: "", setsDone: 0, targetSets: 3, notes: "" });
             save();
         }
 
         function startTimer(d) {
             clearInterval(timerInterval);
-            let t = d;
+            timeLeft = d || db.settings.rest || 60;
             const el = document.getElementById('timer-display');
             el.style.display = 'block';
             timerInterval = setInterval(() => {
-                t--;
-                document.getElementById('seconds').innerText = t;
-                if (t <= 0) { 
-                    clearInterval(timerInterval); 
-                    el.style.display = 'none';
+                timeLeft--;
+                document.getElementById('seconds').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    el.style.background = 'var(--error)';
+                    setTimeout(() => { el.style.display = 'none'; el.style.background = 'var(--secondary)'; }, 5000);
                 }
             }, 1000);
         }
 
-        function exportData() {
-            const s = JSON.stringify(db);
-            const t = document.createElement('textarea');
-            t.value = s; document.body.appendChild(t); t.select();
-            document.execCommand('copy'); document.body.removeChild(t);
-            alert("Data copied! Paste it into your Notes.");
-        }
+        function adjustTimer(amt) { timeLeft += amt; document.getElementById('seconds').innerText = timeLeft; }
+        function endTimer() { clearInterval(timerInterval); document.getElementById('timer-display').style.display = 'none'; }
 
-        function importData() {
-            const r = prompt("Paste backup text:");
-            if(r) { db = JSON.parse(r); save(); location.reload(); }
+        function addCustomFood() {
+            const cal = parseInt(prompt("Calories:"));
+            const pro = parseInt(prompt("Protein (g):"));
+            if(!isNaN(cal)) { db.nutrition.consumed.cal += cal; db.nutrition.consumed.pro += pro || 0; save(); }
         }
 
         function updateUI() {
+            document.getElementById('rest-setting').value = db.settings.rest || 60;
             const cont = document.getElementById('workout-container');
             cont.innerHTML = db.routines.map(r => `
-                <div class="card">
-                    <div class="workout-header"><h2>${r.name}</h2> <span onclick="if(confirm('Delete?')){db.routines=db.routines.filter(x=>x.id!=${r.id});save()}" style="font-size:10px;opacity:0.4">Delete</span></div>
-                    ${r.exercises.map((ex, i) => `
-                        <div class="exercise-row">
-                            <div class="ex-meta">
-                                <span style="color:var(--primary); font-weight:bold;">${ex.name}</span>
-                                <span onclick="if(confirm('Remove?')){db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()}" style="color:var(--error); font-size:12px;">✕</span>
-                            </div>
-                            <div class="ex-controls">
-                                <input type="text" placeholder="weight" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
-                                <select onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].units=this.value;save()">
-                                    <option ${ex.units==='lb'?'selected':''}>lb</option>
-                                    <option ${ex.units==='kg'?'selected':''}>kg</option>
-                                    <option ${ex.units==='minutes'?'selected':''}>min</option>
-                                </select>
-                                <input type="number" placeholder="reps" value="${ex.reps}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
-                                <div class="set-controls">
-                                    <button class="set-btn" onclick="updateSets(${r.id},${i},1)">${ex.setsDone}/${ex.targetSets}</button>
-                                </div>
-                            </div>
-                            <div class="notes-row"><input type="text" class="notes-box" placeholder="Notes" value="${ex.notes||''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()"></div>
+                <div class="card ${r.collapsed ? 'collapsed' : ''}">
+                    <div class="workout-header">
+                        <div onclick="toggleCollapse(${r.id})">
+                            <span style="font-size:18px">${r.collapsed ? '▶' : '▼'}</span>
+                            <h2 style="display:inline; margin-left:10px;">${r.name}</h2>
                         </div>
-                    `).join('')}
-                    <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary);" onclick="addExercise(${r.id})">+ Add Exercise</button>
+                        <input type="date" class="date-input" value="${r.date}" onchange="db.routines.find(x=>x.id==${r.id}).date=this.value;save()">
+                    </div>
+                    <div class="workout-content">
+                        ${r.exercises.map((ex, i) => `
+                            <div class="exercise-row">
+                                <div class="ex-meta">
+                                    <span style="color:var(--primary); font-weight:bold;">${ex.name}</span>
+                                    <span onclick="if(confirm('Remove?')){db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()}" style="opacity:0.3;">✕</span>
+                                </div>
+                                <div class="ex-controls">
+                                    <input type="text" placeholder="wt" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
+                                    <select onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].units=this.value;save()">
+                                        <option ${ex.units==='lb'?'selected':''}>lb</option>
+                                        <option ${ex.units==='kg'?'selected':''}>kg</option>
+                                        <option ${ex.units==='min'?'selected':''}>min</option>
+                                    </select>
+                                    <input type="number" placeholder="reps" value="${ex.reps}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
+                                    <button class="set-btn" onclick="const ex=db.routines.find(x=>x.id==${r.id}).exercises[${i}]; ex.setsDone++; startTimer(); save();">${ex.setsDone}/${ex.targetSets}</button>
+                                </div>
+                                <div class="notes-row"><input type="text" class="notes-box" placeholder="Notes" value="${ex.notes||''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()"></div>
+                            </div>
+                        `).join('')}
+                        <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary);" onclick="addExercise(${r.id})">+ Add Exercise</button>
+                        <button style="background:transparent; border:none; color:var(--error); font-size:10px; margin-top:10px;" onclick="if(confirm('Delete entire category?')){db.routines=db.routines.filter(x=>x.id!=${r.id});save()}">Delete Category</button>
+                    </div>
                 </div>
             `).join('');
+            
             const n = db.nutrition;
             document.getElementById('cal-fill').style.width = Math.min((n.consumed.cal/n.goals.cal)*100, 100) + '%';
             document.getElementById('pro-fill').style.width = Math.min((n.consumed.pro/n.goals.pro)*100, 100) + '%';
@@ -201,8 +250,26 @@
         document.getElementById('food-input').addEventListener('input', (e) => {
             const q = e.target.value.toLowerCase();
             const res = foodDB.filter(f => f.name.toLowerCase().includes(q));
-            document.getElementById('food-results').innerHTML = q ? res.map(f => `<div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between;" onclick="const r=parseFloat(prompt('How many?','1')); db.nutrition.consumed.cal+=Math.round(${f.cal}*r); db.nutrition.consumed.pro+=Math.round(${f.pro}*r); save();"><span>${f.name}</span> <span style="color:var(--secondary)">+</span></div>`).join('') : '';
+            document.getElementById('food-results').innerHTML = q ? res.map(f => `
+                <div class="food-item" onclick="const r=parseFloat(prompt('How many ${f.unit}?','1')); if(r){db.nutrition.consumed.cal+=Math.round(${f.cal}*r); db.nutrition.consumed.pro+=Math.round(${f.pro}*r); save();}">
+                    <span>${f.name} <small style="color:#666;display:block;">${f.cal}cal | ${f.pro}g pro</small></span>
+                    <span style="color:var(--secondary)">+ Add</span>
+                </div>`).join('') : '';
         });
+
+        function exportToFile() {
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `FlexJournal_Backup.json`;
+            link.click();
+        }
+
+        function importFromFile(input) {
+            const reader = new FileReader();
+            reader.onload = (e) => { db = JSON.parse(e.target.result); save(); location.reload(); };
+            reader.readAsText(input.files[0]);
+        }
 
         function resetDailyNutrition() { if(confirm("Reset?")) { db.nutrition.consumed = { cal: 0, pro: 0 }; save(); } }
         updateUI();
