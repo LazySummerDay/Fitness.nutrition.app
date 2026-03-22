@@ -1,195 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="apple-touch-icon" href="icon.png.PNG">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlexJournal PRO</title>
-    <style>
-        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --delete: #ef4444; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-        h2, h3 { margin: 0 0 10px 0; color: var(--accent); }
-        
-        /* Stats Styling */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .stat-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; text-align: center; }
-        .stat-val { font-size: 1.4rem; font-weight: bold; display: block; }
-        
-        /* Input Styling */
-        input, select { width: 100%; padding: 10px; margin: 5px 0 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        button { cursor: pointer; border-radius: 6px; border: none; font-weight: 600; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: #0f172a; width: 100%; padding: 12px; }
-        .btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 5px 10px; font-size: 0.8rem; }
-        
-        /* History Styling */
-        .history-list { margin-top: 15px; border-top: 1px solid #334155; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #334155; font-size: 0.9rem; }
-        .history-meta { color: #94a3b8; font-size: 0.75rem; }
-        .del-btn { color: var(--delete); background: none; font-size: 1.2rem; padding: 5px; }
+    <title>FlexJournal Pro</title>
+    
+    <link rel="apple-touch-icon" href="icon.png.PNG">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-        /* Workout Sections */
+    <style>
+        :root {
+            --bg: #121212; --card: #1e1e1e; --text: #ffffff;
+            --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679;
+        }
+        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px;}
+        
+        .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
+        .tab { flex: 1; padding: 12px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1px solid transparent; }
+        .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
+        
+        #timer-display { display:none; position:fixed; top:0; left:0; width:100%; background:var(--secondary); color:black; text-align:center; padding:12px; font-weight:bold; z-index:1000; }
+        .timer-btns { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
+        .t-btn { background: rgba(0,0,0,0.2); border: 1px solid black; padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
         .workout-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .collapsed .workout-content { display: none; }
+        
+        .exercise-row { margin-bottom: 18px; border-bottom: 1px solid #2a2a2a; padding-bottom: 12px; }
+        .ex-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .ex-controls { display: grid; grid-template-columns: 1fr 0.8fr 0.6fr 1.2fr; gap: 6px; align-items: center; }
+        
+        input, select { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px;}
+        .set-btn { background: var(--secondary); border: none; padding: 8px; border-radius: 6px; color: #000; font-weight: bold; width: 100%; height: 35px;}
+
+        .progress-bar { background: #333; height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        
+        button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
         .hidden { display: none; }
+        
+        #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
+        .list-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .history-item { font-size: 12px; color: #aaa; padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
     </style>
 </head>
 <body>
 
-    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin:0; font-size: 1.5rem;">FlexJournal <span style="color:var(--accent)">PRO</span></h1>
-        <button class="btn-ghost" onclick="exportData()">Backup</button>
-    </header>
-
-    <div class="card">
-        <div class="workout-header" onclick="toggleSection('nutri-content')">
-            <h3>Nutrition Log</h3>
-            <span id="nutri-arrow">▼</span>
-        </div>
-        
-        <div id="nutri-content">
-            <div class="stats-grid">
-                <div class="stat-box"><span id="today-cals" class="stat-val">0</span>Calories Today</div>
-                <div class="stat-box"><span id="today-protein" class="stat-val">0</span>Protein (g)</div>
-            </div>
-
-            <input type="text" id="food-name" placeholder="Food Name">
-            <div style="display:flex; gap:10px;">
-                <input type="number" id="food-cals" placeholder="Cals">
-                <input type="number" id="food-protein" placeholder="Prot">
-            </div>
-            <button class="btn-primary" onclick="addFood()">Add Food</button>
-
-            <div class="history-list">
-                <p style="font-size: 0.8rem; color: var(--accent); margin-bottom: 5px;">3-Day History</p>
-                <div id="history-container"></div>
-            </div>
+    <div id="timer-display">
+        REST: <span id="seconds">60</span>s
+        <div class="timer-btns">
+            <div class="t-btn" onclick="adjustTimer(30)">+30s</div>
+            <div class="t-btn" onclick="endTimer()">End Rest</div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="workout-header" onclick="toggleSection('workout-content')">
-            <h3>Active Workout</h3>
-            <span>▼</span>
+    <div id="selection-overlay"></div>
+
+    <div class="tab-bar">
+        <div class="tab active" onclick="showTab('workout')">Workouts</div>
+        <div class="tab" onclick="showTab('nutrition')">Nutrition</div>
+        <div class="tab" onclick="showTab('data')">Settings</div>
+    </div>
+
+    <div id="workout-tab" class="content-tab">
+        <div id="workout-container"></div>
+        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ New Workout Category</button>
+    </div>
+
+    <div id="nutrition-tab" class="content-tab hidden">
+        <div class="card">
+            <h2>Today's Macros</h2>
+            <div style="display:flex; justify-content:space-between"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
+            <div class="progress-bar"><div id="cal-fill" class="progress-fill"></div></div>
+            <div style="display:flex; justify-content:space-between"><span>Protein</span><span id="pro-text">0g / 150g</span></div>
+            <div class="progress-bar"><div id="pro-fill" class="progress-fill" style="background:var(--secondary)"></div></div>
+            
+            <h4 style="margin-bottom:5px; color:var(--primary)">Today's Log</h4>
+            <div id="daily-log-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+            
+            <button class="main-btn" onclick="addCustomFood()" style="background:#444; color:white; font-size:12px;">+ Add Custom Food Item</button>
         </div>
-        <div id="workout-content" class="hidden">
-            <p style="color: #94a3b8; font-size: 0.9rem;">Workout tracking active. Data saved to FlexJournal_PRO_DATA.</p>
-            </div>
+        
+        <div class="card">
+            <input type="text" id="food-input" placeholder="Search Food List...">
+            <div id="food-results" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0">Last 3 Days</h3>
+            <div id="history-container"></div>
+        </div>
+    </div>
+
+    <div id="data-tab" class="content-tab hidden">
+        <div class="card">
+            <h2>Data & Sync</h2>
+            <p style="font-size: 11px; color: #888;">Last Export: <span id="last-backup-text">Never</span></p>
+            <button class="main-btn" onclick="exportToFile()">Export Backup (.JSON)</button>
+            <label class="main-btn" style="background:#444; color:white; display:block; text-align:center; cursor:pointer; margin-top:15px;">
+                Import Backup (.JSON)
+                <input type="file" id="import-input" style="display:none;" onchange="importFromFile(this)">
+            </label>
+        </div>
     </div>
 
     <script>
         const STORAGE_KEY = 'FlexJournal_PRO_DATA';
-        let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-            workouts: [],
-            nutrition: [],
-            settings: { goalCals: 2500, goalProt: 180 }
-        };
+        let timerInterval;
+        let timeLeft = 0;
 
-        function save() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-            renderNutrition();
-        }
+        const masterLibrary = [
+            "Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", 
+            "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", 
+            "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", 
+            "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", 
+            "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"
+        ];
 
-        function toggleSection(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('hidden');
-        }
+        function loadDB() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const today = new Date().toISOString().split('T')[0];
+            const defaults = {
+                routines: [],
+                library: masterLibrary,
+                customFoods: [],
+                settings: { rest: 60, lastBackup: "Never" },
+                nutrition: { 
+                    consumed: { cal: 0, pro: 0 }, 
+                    goals: { cal: 2500, pro: 150 },
+                    lastUpdate: today,
+                    dailyLog: [],
+                    history: []
+                }
+            };
+            if(!saved) return defaults;
+            let db = JSON.parse(saved);
 
-        // --- NUTRITION LOGIC ---
-
-        function renderNutrition() {
-            const now = new Date();
-            const todayStr = now.toLocaleDateString();
-            
-            // Define 3-day window (72 hours)
-            const threeDaysAgo = new Date();
-            threeDaysAgo.setDate(now.getDate() - 3);
-
-            // 1. Calculate Today's Totals (Auto-reset logic)
-            const todayLogs = appData.nutrition.filter(log => 
-                new Date(log.timestamp).toLocaleDateString() === todayStr
-            );
-
-            const totals = todayLogs.reduce((acc, curr) => ({
-                cals: acc.cals + Number(curr.cals),
-                prot: acc.prot + Number(curr.prot)
-            }), { cals: 0, prot: 0 });
-
-            document.getElementById('today-cals').innerText = totals.cals;
-            document.getElementById('today-protein').innerText = totals.prot;
-
-            // 2. Render 3-Day History
-            const container = document.getElementById('history-container');
-            container.innerHTML = '';
-
-            const recentLogs = appData.nutrition
-                .filter(log => new Date(log.timestamp) >= threeDaysAgo)
-                .sort((a, b) => b.timestamp - a.timestamp);
-
-            if (recentLogs.length === 0) {
-                container.innerHTML = '<p style="color:#64748b; font-size:0.8rem; text-align:center;">No recent logs.</p>';
-                return;
+            // DATE RESET LOGIC
+            if (db.nutrition.lastUpdate !== today) {
+                // Save current day to history before wiping
+                if(db.nutrition.consumed.cal > 0) {
+                    db.nutrition.history.unshift({
+                        date: db.nutrition.lastUpdate,
+                        cal: db.nutrition.consumed.cal,
+                        pro: db.nutrition.consumed.pro
+                    });
+                    // Keep only last 3 days
+                    db.nutrition.history = db.nutrition.history.slice(0, 3);
+                }
+                // Reset daily
+                db.nutrition.consumed = { cal: 0, pro: 0 };
+                db.nutrition.dailyLog = [];
+                db.nutrition.lastUpdate = today;
             }
 
-            recentLogs.forEach(log => {
-                const dateObj = new Date(log.timestamp);
-                const timeLabel = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const dateLabel = dateObj.toLocaleDateString([], { weekday: 'short', month: 'numeric', day: 'numeric' });
+            return db;
+        }
 
-                const item = document.createElement('div');
-                item.className = 'history-item';
-                item.innerHTML = `
-                    <div>
-                        <strong>${log.name}</strong> <span class="history-meta">| ${log.cals} cal</span><br>
-                        <span class="history-meta">${dateLabel} • ${timeLabel}</span>
+        let db = loadDB();
+
+        const baseFoodDB = [
+            { name: "White Rice", cal: 130, pro: 2.7, unit: "100g cooked" },
+            { name: "Brown Rice", cal: 111, pro: 2.6, unit: "100g cooked" },
+            { name: "Ground Beef (80/20)", cal: 250, pro: 26, unit: "100g" },
+            { name: "Ground Beef (93/7)", cal: 170, pro: 26, unit: "100g" },
+            { name: "Milk (2%)", cal: 50, pro: 3.3, unit: "100ml" },
+            { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" },
+            { name: "Oats (Dry)", cal: 150, pro: 5, unit: "40g" },
+            { name: "Romanian Lettuce", cal: 17, pro: 1.2, unit: "100g" },
+            { name: "Protein Powder", cal: 120, pro: 30, unit: "1 scoop" }
+        ];
+
+        function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
+
+        // --- NUTRITION LOGIC ---
+        function addFoodToLog(name, cal, pro) {
+            db.nutrition.consumed.cal += cal;
+            db.nutrition.consumed.pro += pro;
+            db.nutrition.dailyLog.push({ id: Date.now(), name, cal, pro });
+            save();
+        }
+
+        function deleteFoodEntry(id) {
+            const entry = db.nutrition.dailyLog.find(e => e.id === id);
+            if(entry) {
+                db.nutrition.consumed.cal -= entry.cal;
+                db.nutrition.consumed.pro -= entry.pro;
+                db.nutrition.dailyLog = db.nutrition.dailyLog.filter(e => e.id !== id);
+                save();
+            }
+        }
+
+        function updateUI() {
+            // ... (Workout rendering same as before) ...
+            renderWorkouts();
+
+            // Nutrition Rendering
+            const n = db.nutrition;
+            document.getElementById('cal-fill').style.width = Math.min((n.consumed.cal/n.goals.cal)*100, 100) + '%';
+            document.getElementById('pro-fill').style.width = Math.min((n.consumed.pro/n.goals.pro)*100, 100) + '%';
+            document.getElementById('cal-text').innerText = `${n.consumed.cal} / ${n.goals.cal}`;
+            document.getElementById('pro-text').innerText = `${n.consumed.pro}g / ${n.goals.pro}g`;
+
+            // Daily Log Rendering
+            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `
+                <div class="list-item" style="padding: 8px 0; border-bottom: 1px solid #2a2a2a">
+                    <span>${e.name} <small style="color:#666">(${e.cal}c)</small></span>
+                    <span onclick="deleteFoodEntry(${e.id})" style="color:var(--error); cursor:pointer; font-weight:bold; padding: 0 10px;">✕</span>
+                </div>
+            `).join('') || '<p style="color:#666; font-size:12px;">No food logged today.</p>';
+
+            // History Rendering
+            document.getElementById('history-container').innerHTML = n.history.map(h => `
+                <div class="history-item">
+                    <strong>${h.date}</strong> — ${h.cal} cal | ${h.pro}g protein
+                </div>
+            `).join('') || '<p style="color:#666; font-size:12px;">No history yet.</p>';
+        }
+
+        // --- WORKOUT RENDERING ENGINE ---
+        function renderWorkouts() {
+            const cont = document.getElementById('workout-container');
+            cont.innerHTML = db.routines.map(r => `
+                <div class="card ${r.collapsed ? 'collapsed' : ''}">
+                    <div class="workout-header">
+                        <div onclick="toggleCollapse(${r.id})" style="flex:1">
+                            <span>${r.collapsed ? '▶' : '▼'}</span>
+                            <h2 style="display:inline; margin-left:10px;">${r.name}</h2>
+                        </div>
+                        <input type="date" style="background:transparent; border:none; color:#888; width:115px;" value="${r.date}" onchange="db.routines.find(x=>x.id==${r.id}).date=this.value;save()">
                     </div>
-                    <button class="del-btn" onclick="deleteFood(${log.id})">&times;</button>
-                `;
-                container.appendChild(item);
+                    <div class="workout-content">
+                        ${r.exercises.map((ex, i) => `
+                            <div class="exercise-row">
+                                <div class="ex-meta"><strong>${ex.name}</strong> <span onclick="if(confirm('Delete?')){db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()}" style="opacity:0.3">✕</span></div>
+                                <div class="ex-controls">
+                                    <input type="text" placeholder="wt" value="${ex.weight}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
+                                    <select onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].units=this.value;save()">
+                                        <option ${ex.units==='lb'?'selected':''}>lb</option>
+                                        <option ${ex.units==='kg'?'selected':''}>kg</option>
+                                    </select>
+                                    <input type="number" placeholder="reps" value="${ex.reps}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
+                                    <button class="set-btn" onclick="updateSets(${r.id}, ${i})">${ex.setsDone}/${ex.targetSets}</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary);" onclick="openExerciseMenu(${r.id})">+ Add Exercise</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- TIMER & BACKUP (SAME AS BEFORE) ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = db.settings.rest || 60;
+            const el = document.getElementById('timer-display');
+            el.style.display = 'block';
+            el.style.background = 'var(--secondary)';
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('seconds').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+                    el.style.background = 'var(--error)';
+                }
+            }, 1000);
+        }
+
+        function adjustTimer(amt) { timeLeft += amt; document.getElementById('seconds').innerText = timeLeft; }
+        function endTimer() { clearInterval(timerInterval); document.getElementById('timer-display').style.display = 'none'; }
+        
+        function showTab(t) {
+            document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(t + '-tab').classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        }
+
+        function toggleCollapse(id) {
+            const r = db.routines.find(x => x.id === id);
+            r.collapsed = !r.collapsed;
+            save();
+        }
+
+        function createWorkout() {
+            const n = prompt("Workout Name:");
+            if(n) { db.routines.push({ id: Date.now(), name: n, date: new Date().toISOString().split('T')[0], collapsed: false, exercises: [] }); save(); }
+        }
+
+        function updateSets(rId, i) {
+            const ex = db.routines.find(r => r.id === rId).exercises[i];
+            ex.setsDone++;
+            if(ex.setsDone > ex.targetSets) { ex.setsDone = 0; endTimer(); } 
+            else { startTimer(); }
+            save();
+        }
+
+        function openExerciseMenu(rId) {
+            const overlay = document.getElementById('selection-overlay');
+            overlay.style.display = 'block';
+            let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
+            html += `<button class="main-btn" onclick="createNewEx(${rId})">+ Create New</button><br><br>`;
+            db.library.sort().forEach(ex => {
+                html += `<div class="list-item" onclick="addExToRoutine(${rId},'${ex}')"><span>${ex}</span><span style="color:var(--secondary)">+</span></div>`;
             });
+            html += `<button class="main-btn" style="background:#444" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
+            overlay.innerHTML = html;
         }
 
-        function addFood() {
-            const nameInput = document.getElementById('food-name');
-            const calsInput = document.getElementById('food-cals');
-            const protInput = document.getElementById('food-protein');
+        function addExToRoutine(rId, name) {
+            db.routines.find(r => r.id === rId).exercises.push({ name: name, weight: "", units: "lb", reps: "", setsDone: 0, targetSets: 3, notes: "" });
+            document.getElementById('selection-overlay').style.display = 'none';
+            save();
+        }
 
-            if (!nameInput.value || !calsInput.value) return;
+        function createNewEx(rId) {
+            const n = prompt("New Exercise Name:");
+            if(n) { if(!db.library.includes(n)) db.library.push(n); addExToRoutine(rId, n); }
+        }
 
-            const entry = {
-                id: Date.now(),
-                name: nameInput.value,
-                cals: Number(calsInput.value),
-                prot: Number(protInput.value) || 0,
-                timestamp: Date.now()
+        function addCustomFood() {
+            const n = prompt("Food Name:");
+            const c = parseInt(prompt("Calories:"));
+            const p = parseInt(prompt("Protein:"));
+            if(n && !isNaN(c)) { addFoodToLog(n, c, p || 0); }
+        }
+
+        document.getElementById('food-input').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
+            const combined = [...baseFoodDB, ...db.customFoods];
+            const res = combined.filter(f => f.name.toLowerCase().includes(q));
+            document.getElementById('food-results').innerHTML = res.map(f => `
+                <div class="list-item" onclick="const r=parseFloat(prompt('How many ${f.unit}?','1')); if(r){ addFoodToLog('${f.name}', Math.round(${f.cal}*r), Math.round(${f.pro}*r)); }">
+                    <span>${f.name} <br><small style="color:#666">${f.cal}cal | ${f.pro}g pro</small></span>
+                    <span style="color:var(--secondary)">+ Add</span>
+                </div>`).join('');
+        });
+
+        function exportToFile() {
+            const now = new Date().toLocaleString();
+            db.settings.lastBackup = now;
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `FlexJournal_Backup.json`;
+            link.click();
+            save();
+        }
+
+        function importFromFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                db = JSON.parse(e.target.result);
+                save();
+                location.reload();
             };
-
-            appData.nutrition.push(entry);
-            
-            // Clear inputs
-            nameInput.value = '';
-            calsInput.value = '';
-            protInput.value = '';
-            
-            save();
+            reader.readAsText(file);
         }
 
-        function deleteFood(id) {
-            appData.nutrition = appData.nutrition.filter(item => item.id !== id);
-            save();
-        }
-
-        // --- BACKUP LOGIC ---
-        function exportData() {
-            const blob = new Blob([JSON.stringify(appData)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `FlexJournal_Backup_${new Date().toLocaleDateString()}.json`;
-            a.click();
-        }
-
-        // Initialize
-        renderNutrition();
+        updateUI();
     </script>
 </body>
 </html>
