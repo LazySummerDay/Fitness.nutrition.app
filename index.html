@@ -41,7 +41,6 @@
         button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
         .hidden { display: none; }
         
-        /* Selection Overlay */
         #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
         .list-item { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 16px; }
     </style>
@@ -86,52 +85,96 @@
 
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
-            <h2>Settings</h2>
-            <label style="font-size:12px; color:#888;">Rest Time (Sec)</label>
+            <h2>Data & Sync</h2>
+            <p style="font-size: 11px; color: #888;">Last Export: <span id="last-backup-text">Never</span></p>
+            
+            <button class="main-btn" onclick="exportToFile()">Export Backup (.JSON)</button>
+            
+            <label class="main-btn" style="background:#444; color:white; display:block; text-align:center; cursor:pointer; margin-top:15px;">
+                Import Backup (.JSON)
+                <input type="file" id="import-input" style="display:none;" onchange="importFromFile(this)">
+            </label>
+
+            <hr style="border:0; border-top:1px solid #333; margin:25px 0;">
+            
+            <label style="font-size:12px; color:#888;">Default Rest (Sec)</label>
             <input type="number" id="rest-setting" onchange="db.settings.rest=parseInt(this.value);save()">
-            <button class="main-btn" style="margin-top:20px;" onclick="exportToFile()">Export Backup (.JSON)</button>
-            <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe all data?')){localStorage.clear();location.reload();}">Hard Reset App</button>
+            
+            <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe ALL data? This cannot be undone.')){localStorage.clear();location.reload();}">Hard Reset App</button>
         </div>
     </div>
 
     <script>
-        const STORAGE_KEY = 'FlexJournal_v10';
+        const STORAGE_KEY = 'FlexJournal_PRO_DATA';
         let timerInterval;
         let timeLeft = 0;
 
-        let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-            routines: [],
-            library: ["Bench Press", "Squat", "Deadlift", "Overhead Press", "Pull Ups", "Bicep Curls"],
-            customFoods: [],
-            settings: { rest: 60 },
-            nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } }
-        };
+        // NEW EXERCISE LIST (Sorted Alphabetically automatically in menu)
+        const masterLibrary = [
+            "Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", 
+            "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", 
+            "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", 
+            "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", 
+            "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"
+        ];
+
+        function loadDB() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const defaults = {
+                routines: [],
+                library: masterLibrary,
+                customFoods: [],
+                settings: { rest: 60, lastBackup: "Never" },
+                nutrition: { consumed: { cal: 0, pro: 0 }, goals: { cal: 2500, pro: 150 } }
+            };
+            if(!saved) return defaults;
+            let parsed = JSON.parse(saved);
+            
+            // Merge existing library with new master items to ensure no duplicates
+            let combinedLib = Array.from(new Set([...masterLibrary, ...parsed.library]));
+            return {...defaults, ...parsed, library: combinedLib};
+        }
+
+        let db = loadDB();
 
         const baseFoodDB = [
             { name: "White Rice", cal: 130, pro: 2.7, unit: "100g cooked" },
             { name: "Brown Rice", cal: 111, pro: 2.6, unit: "100g cooked" },
             { name: "Ground Beef (80/20)", cal: 250, pro: 26, unit: "100g" },
             { name: "Ground Beef (93/7)", cal: 170, pro: 26, unit: "100g" },
-            { name: "Milk (1%)", cal: 42, pro: 3.4, unit: "100ml" },
             { name: "Milk (2%)", cal: 50, pro: 3.3, unit: "100ml" },
             { name: "Chicken Breast", cal: 165, pro: 31, unit: "100g" },
             { name: "Oats (Dry)", cal: 150, pro: 5, unit: "40g" },
-            { name: "Black Beans", cal: 132, pro: 8.9, unit: "100g" },
-            { name: "Lentils", cal: 116, pro: 9, unit: "100g" },
-            { name: "Chickpeas", cal: 164, pro: 8.9, unit: "100g" },
-            { name: "Corn", cal: 86, pro: 3.2, unit: "100g" },
-            { name: "Cereal", cal: 380, pro: 8, unit: "100g" },
             { name: "Romanian Lettuce", cal: 17, pro: 1.2, unit: "100g" },
-            { name: "Broccoli", cal: 34, pro: 2.8, unit: "100g" },
-            { name: "Pasta (Noodles)", cal: 131, pro: 5, unit: "100g cooked" },
-            { name: "Quinoa", cal: 120, pro: 4.4, unit: "100g cooked" },
-            { name: "Cheddar Cheese", cal: 400, pro: 25, unit: "100g" },
-            { name: "Cucumber", cal: 15, pro: 0.7, unit: "100g" },
-            { name: "Cherry Tomatoes", cal: 18, pro: 0.9, unit: "100g" },
-            { name: "Protein Powder", cal: 120, pro: 30, unit: "1 scoop (30g)" }
+            { name: "Protein Powder", cal: 120, pro: 30, unit: "1 scoop" }
         ];
 
         function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
+
+        function exportToFile() {
+            const now = new Date().toLocaleString();
+            db.settings.lastBackup = now;
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `FlexJournal_Backup.json`;
+            link.click();
+            save();
+        }
+
+        function importFromFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    db = JSON.parse(e.target.result);
+                    save();
+                    location.reload();
+                } catch(err) { alert("Invalid file."); }
+            };
+            reader.readAsText(file);
+        }
 
         function createWorkout() {
             const n = prompt("Workout Name:");
@@ -144,17 +187,17 @@
             save();
         }
 
-        // --- EXERCISE SELECTION MENU ---
         function openExerciseMenu(rId) {
             const overlay = document.getElementById('selection-overlay');
             overlay.style.display = 'block';
-            let html = `<h2 style="color:var(--primary); margin-top:0;">Select Exercise</h2>`;
-            html += `<button class="main-btn" onclick="createNewEx(${rId})">+ Create New Exercise</button><br><br>`;
+            let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
+            html += `<button class="main-btn" onclick="createNewEx(${rId})">+ Create New</button><br><br>`;
             
+            // ALPHABETICAL SORT FOR THE MENU
             db.library.sort().forEach(ex => {
                 html += `<div class="list-item" onclick="addExToRoutine(${rId},'${ex}')"><span>${ex}</span><span style="color:var(--secondary)">+</span></div>`;
             });
-            html += `<button class="main-btn" style="background:#444; color:white;" onclick="document.getElementById('selection-overlay').style.display='none'">Close</button>`;
+            html += `<button class="main-btn" style="background:#444" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
             overlay.innerHTML = html;
         }
 
@@ -166,22 +209,14 @@
 
         function createNewEx(rId) {
             const n = prompt("New Exercise Name:");
-            if(n) {
-                if(!db.library.includes(n)) db.library.push(n);
-                addExToRoutine(rId, n);
-            }
+            if(n) { if(!db.library.includes(n)) db.library.push(n); addExToRoutine(rId, n); }
         }
 
-        // --- SETS & TIMER ---
         function updateSets(rId, i) {
             const ex = db.routines.find(r => r.id === rId).exercises[i];
             ex.setsDone++;
-            if(ex.setsDone > ex.targetSets) {
-                ex.setsDone = 0; // 4th click resets to 0
-                endTimer();
-            } else {
-                startTimer();
-            }
+            if(ex.setsDone > ex.targetSets) { ex.setsDone = 0; endTimer(); } 
+            else { startTimer(); }
             save();
         }
 
@@ -205,19 +240,16 @@
         function adjustTimer(amt) { timeLeft += amt; document.getElementById('seconds').innerText = timeLeft; }
         function endTimer() { clearInterval(timerInterval); document.getElementById('timer-display').style.display = 'none'; }
 
-        // --- NUTRITION ---
         function addCustomFood() {
             const n = prompt("Food Name:");
             const c = parseInt(prompt("Calories:"));
-            const p = parseInt(prompt("Protein (g):"));
-            if(n && !isNaN(c)) {
-                db.customFoods.push({ name: n, cal: c, pro: p || 0, unit: "custom" });
-                save();
-            }
+            const p = parseInt(prompt("Protein:"));
+            if(n && !isNaN(c)) { db.customFoods.push({ name: n, cal: c, pro: p || 0, unit: "custom" }); save(); }
         }
 
         function updateUI() {
             document.getElementById('rest-setting').value = db.settings.rest || 60;
+            document.getElementById('last-backup-text').innerText = db.settings.lastBackup || "Never";
             const cont = document.getElementById('workout-container');
             cont.innerHTML = db.routines.map(r => `
                 <div class="card ${r.collapsed ? 'collapsed' : ''}">
@@ -272,14 +304,6 @@
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
             document.getElementById(t + '-tab').classList.remove('hidden');
             event.currentTarget.classList.add('active');
-        }
-
-        function exportToFile() {
-            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `FlexJournal_Backup.json`;
-            link.click();
         }
 
         updateUI();
