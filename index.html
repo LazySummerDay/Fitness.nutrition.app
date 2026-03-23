@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FlexJournal Pro</title>
-    <link rel="apple-touch-icon" href="icon.png.PNG">
+    <link rel="apple-touch-icon" href="icon.png.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
@@ -15,7 +15,6 @@
         .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
         
-        /* COLLAPSE LOGIC */
         .workout-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .workout-content { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
         .collapsed .workout-content { display: none; }
@@ -28,6 +27,8 @@
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
         input, select { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; }
         button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
+        .set-btn { background: #444; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; height: 40px; }
+        .set-btn.complete { background: var(--secondary); color: black; }
         .list-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none; }
         #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
@@ -54,28 +55,23 @@
                 <h2 style="margin:0">Nutrition</h2>
                 <button onclick="setMacros()" style="background:none; border:1px solid var(--primary); color:var(--primary); padding:4px 8px; border-radius:4px; font-size:11px;">Set Goals</button>
             </div>
-            
             <div style="margin-top:15px;">
                 <div style="display:flex; justify-content:space-between"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
                 <div class="progress-bar"><div id="cal-fill" class="progress-fill"></div></div>
             </div>
-
             <div class="macro-grid">
                 <div class="macro-box">P: <span id="p-text">0/150</span>g<div class="progress-bar"><div id="p-fill" class="progress-fill" style="background:var(--secondary)"></div></div></div>
                 <div class="macro-box">F: <span id="f-text">0/70</span>g<div class="progress-bar"><div id="f-fill" class="progress-fill" style="background:#ffb74d"></div></div></div>
                 <div class="macro-box">C: <span id="c-text">0/250</span>g<div class="progress-bar"><div id="c-fill" class="progress-fill" style="background:#4fc3f7"></div></div></div>
             </div>
-
             <h4 style="color:var(--primary); margin-bottom:5px; margin-top:20px;">Today's Log</h4>
             <div id="daily-log-list" style="max-height:150px; overflow-y:auto; font-size:13px;"></div>
             <button class="main-btn" onclick="addCustomFoodToLibrary()" style="background:#444; color:white; font-size:12px;">+ Create New Custom Food</button>
         </div>
-
         <div class="card">
             <input type="text" id="food-input" placeholder="Search Food Library...">
             <div id="food-results"></div>
         </div>
-
         <div class="card">
             <h3 style="margin-top:0">3-Day History</h3>
             <div id="history-container"></div>
@@ -106,9 +102,7 @@
                 routines: [], library: masterExercises, customFoods: [],
                 nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, lastUpdate: today, dailyLog: [], history: [] }
             };
-
             db = saved ? JSON.parse(saved) : defaults;
-            
             if (db.nutrition.lastUpdate !== today) {
                 if(db.nutrition.consumed.cal > 0) {
                     db.nutrition.history.unshift({date: db.nutrition.lastUpdate, ...db.nutrition.consumed});
@@ -123,7 +117,7 @@
 
         function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
 
-        // --- NUTRITION FUNCTIONS ---
+        // --- NUTRITION LOGIC ---
         function setMacros() {
             db.nutrition.goals.cal = parseInt(prompt("Daily Calories:", db.nutrition.goals.cal)) || 2500;
             db.nutrition.goals.p = parseInt(prompt("Protein Goal (g):", db.nutrition.goals.p)) || 150;
@@ -133,9 +127,8 @@
         }
 
         function addCustomFoodToLibrary() {
-            const name = prompt("Food Name:");
-            if(!name) return;
-            const unit = prompt("Serving Unit (e.g., 1 cup, 1 portion, 100g):", "1 portion");
+            const name = prompt("Food Name:"); if(!name) return;
+            const unit = prompt("Serving Unit:", "1 portion");
             const cal = parseInt(prompt("Calories:")) || 0;
             const p = parseInt(prompt("Protein:")) || 0;
             const f = parseInt(prompt("Fats:")) || 0;
@@ -146,12 +139,9 @@
 
         function logFood(food, multiplier) {
             const entry = { id: Date.now(), name: food.name, cal: Math.round(food.cal * multiplier), p: Math.round(food.p * multiplier), f: Math.round(food.f * multiplier), c: Math.round(food.c * multiplier) };
-            db.nutrition.consumed.cal += entry.cal;
-            db.nutrition.consumed.p += entry.p;
-            db.nutrition.consumed.f += entry.f;
-            db.nutrition.consumed.c += entry.c;
-            db.nutrition.dailyLog.push(entry);
-            save();
+            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p;
+            db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
+            db.nutrition.dailyLog.push(entry); save();
         }
 
         function removeFood(id) {
@@ -176,6 +166,12 @@
             save();
         }
 
+        function toggleSets(rId, exIndex) {
+            const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
+            ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1;
+            save();
+        }
+
         function renderWorkouts() {
             const container = document.getElementById('workout-container');
             container.innerHTML = db.routines.map(r => `
@@ -194,7 +190,7 @@
                                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:5px;">
                                     <input type="text" placeholder="wt" value="${ex.weight || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
                                     <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
-                                    <button onclick="db.routines.find(x=>x.id==${r.id}).exercises[${i}].done=!db.routines.find(x=>x.id==${r.id}).exercises[${i}].done;save()" style="background:${ex.done?'var(--secondary)':'#444'}; border:none; border-radius:6px; color:black; font-weight:bold;">${ex.done?'✔':'Set'}</button>
+                                    <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id}, ${i})">${ex.setsDone}/${ex.targetSets}</button>
                                 </div>
                             </div>
                         `).join('')}
@@ -209,7 +205,7 @@
             overlay.style.display = 'block';
             let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
             db.library.sort().forEach(ex => {
-                html += `<div class="list-item" onclick="db.routines.find(r=>r.id==${rId}).exercises.push({name:'${ex}', done:false}); document.getElementById('selection-overlay').style.display='none'; save();"><span>${ex}</span><span>+</span></div>`;
+                html += `<div class="list-item" onclick="db.routines.find(r=>r.id==${rId}).exercises.push({name:'${ex}', setsDone:0, targetSets:3}); document.getElementById('selection-overlay').style.display='none'; save();"><span>${ex}</span><span>+</span></div>`;
             });
             html += `<button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
             overlay.innerHTML = html;
@@ -227,32 +223,17 @@
             updateBar('p', n.consumed.p, n.goals.p);
             updateBar('f', n.consumed.f, n.goals.f);
             updateBar('c', n.consumed.c, n.goals.c);
-
             document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `
-                <div class="list-item" style="padding:8px 0;">
-                    <span>${e.name} <small style="color:#888">(${e.cal}cal, ${e.p}p)</small></span>
-                    <span onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; cursor:pointer; padding:0 10px;">✕</span>
-                </div>
+                <div class="list-item" style="padding:8px 0;"><span>${e.name} (${e.cal}c)</span><span onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; cursor:pointer; padding:0 10px;">✕</span></div>
             `).join('') || '<p style="color:#666">No food logged yet.</p>';
-
-            document.getElementById('history-container').innerHTML = n.history.map(h => `
-                <div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;">
-                    <strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}
-                </div>
-            `).join('');
-
+            document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
             renderWorkouts();
         }
 
         document.getElementById('food-input').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase();
-            if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
+            const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
             const res = [...db.customFoods, {name:"Chicken Breast", unit:"100g", cal:165, p:31, f:3, c:0}].filter(f => f.name.toLowerCase().includes(q));
-            document.getElementById('food-results').innerHTML = res.map(f => `
-                <div class="list-item" onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)">
-                    <span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span>
-                    <span style="color:var(--secondary)">+ Add</span>
-                </div>`).join('');
+            document.getElementById('food-results').innerHTML = res.map(f => `<div class="list-item" onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span><span style="color:var(--secondary)">+ Add</span></div>`).join('');
         });
 
         function showTab(t) {
@@ -264,19 +245,13 @@
 
         function exportToFile() {
             const blob = new Blob([JSON.stringify(db)], { type: "application/json" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "FlexJournal_Backup.json";
-            link.click();
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+            link.download = "FlexJournal_Backup.json"; link.click();
         }
 
         function importFromFile(input) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                db = JSON.parse(e.target.result);
-                save();
-                location.reload();
-            };
+            reader.onload = (e) => { db = JSON.parse(e.target.result); save(); location.reload(); };
             reader.readAsText(input.files[0]);
         }
 
