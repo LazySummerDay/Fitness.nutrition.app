@@ -32,6 +32,8 @@
         .list-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none; }
         #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
+        .action-icon { cursor: pointer; padding: 5px; opacity: 0.7; font-size: 14px; }
+        .action-icon:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -126,22 +128,70 @@
             save();
         }
 
-        function addCustomFoodToLibrary() {
-            const name = prompt("Food Name:"); if(!name) return;
-            const unit = prompt("Serving Unit:", "1 portion");
-            const cal = parseInt(prompt("Calories:")) || 0;
-            const p = parseInt(prompt("Protein:")) || 0;
-            const f = parseInt(prompt("Fats:")) || 0;
-            const c = parseInt(prompt("Carbs:")) || 0;
-            db.customFoods.push({ name, unit, cal, p, f, c });
+        function addCustomFoodToLibrary(existingFood = null, index = -1) {
+            const name = prompt("Food Name:", existingFood ? existingFood.name : ""); if(!name) return;
+            const unit = prompt("Serving Unit (e.g. 1 cup, 100g):", existingFood ? existingFood.unit : "1 portion");
+            const cal = parseInt(prompt("Calories:", existingFood ? existingFood.cal : 0)) || 0;
+            const p = parseInt(prompt("Protein:", existingFood ? existingFood.p : 0)) || 0;
+            const f = parseInt(prompt("Fats:", existingFood ? existingFood.f : 0)) || 0;
+            const c = parseInt(prompt("Carbs:", existingFood ? existingFood.c : 0)) || 0;
+            
+            const foodObj = { name, unit, cal, p, f, c };
+            if(index > -1) {
+                db.customFoods[index] = foodObj;
+            } else {
+                db.customFoods.push(foodObj);
+            }
             save();
         }
 
+        function deleteFromLibrary(index) {
+            if(confirm("Delete this food from your library?")) {
+                db.customFoods.splice(index, 1);
+                save();
+                document.getElementById('food-results').innerHTML = '';
+                document.getElementById('food-input').value = '';
+            }
+        }
+
         function logFood(food, multiplier) {
-            const entry = { id: Date.now(), name: food.name, cal: Math.round(food.cal * multiplier), p: Math.round(food.p * multiplier), f: Math.round(food.f * multiplier), c: Math.round(food.c * multiplier) };
+            const entry = { 
+                id: Date.now(), 
+                name: food.name, 
+                unit: food.unit,
+                base: { cal: food.cal, p: food.p, f: food.f, c: food.c },
+                qty: multiplier,
+                cal: Math.round(food.cal * multiplier), 
+                p: Math.round(food.p * multiplier), 
+                f: Math.round(food.f * multiplier), 
+                c: Math.round(food.c * multiplier) 
+            };
             db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p;
             db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
             db.nutrition.dailyLog.push(entry); save();
+        }
+
+        function editLoggedFood(id) {
+            const entry = db.nutrition.dailyLog.find(e => e.id === id);
+            if(!entry) return;
+            const newQty = parseFloat(prompt(`Edit quantity for ${entry.name} (${entry.unit}):`, entry.qty));
+            if(!newQty || isNaN(newQty)) return;
+
+            // Subtract old
+            db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p;
+            db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c;
+
+            // Update
+            entry.qty = newQty;
+            entry.cal = Math.round(entry.base.cal * newQty);
+            entry.p = Math.round(entry.base.p * newQty);
+            entry.f = Math.round(entry.base.f * newQty);
+            entry.c = Math.round(entry.base.c * newQty);
+
+            // Add new
+            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p;
+            db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
+            save();
         }
 
         function removeFood(id) {
@@ -174,6 +224,7 @@
 
         function renderWorkouts() {
             const container = document.getElementById('workout-container');
+            if(!container) return;
             container.innerHTML = db.routines.map(r => `
                 <div class="card ${r.collapsed ? 'collapsed' : ''}">
                     <div class="workout-header" onclick="toggleCollapse(${r.id})">
@@ -223,17 +274,43 @@
             updateBar('p', n.consumed.p, n.goals.p);
             updateBar('f', n.consumed.f, n.goals.f);
             updateBar('c', n.consumed.c, n.goals.c);
+            
             document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `
-                <div class="list-item" style="padding:8px 0;"><span>${e.name} (${e.cal}c)</span><span onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; cursor:pointer; padding:0 10px;">✕</span></div>
+                <div class="list-item" style="padding:8px 0;">
+                    <span>${e.name} <small style="color:#888">(${e.cal}c)</small></span>
+                    <div>
+                        <span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span>
+                        <span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span>
+                    </div>
+                </div>
             `).join('') || '<p style="color:#666">No food logged yet.</p>';
+
             document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
             renderWorkouts();
         }
 
         document.getElementById('food-input').addEventListener('input', (e) => {
             const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
-            const res = [...db.customFoods, {name:"Chicken Breast", unit:"100g", cal:165, p:31, f:3, c:0}].filter(f => f.name.toLowerCase().includes(q));
-            document.getElementById('food-results').innerHTML = res.map(f => `<div class="list-item" onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span><span style="color:var(--secondary)">+ Add</span></div>`).join('');
+            
+            const resultsDiv = document.getElementById('food-results');
+            resultsDiv.innerHTML = '';
+
+            db.customFoods.forEach((f, idx) => {
+                if(f.name.toLowerCase().includes(q)) {
+                    const row = document.createElement('div');
+                    row.className = 'list-item';
+                    row.innerHTML = `
+                        <div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1">
+                            <span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <span class="action-icon" onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span>
+                            <span class="action-icon" onclick="deleteFromLibrary(${idx})">🗑</span>
+                        </div>
+                    `;
+                    resultsDiv.appendChild(row);
+                }
+            });
         });
 
         function showTab(t) {
