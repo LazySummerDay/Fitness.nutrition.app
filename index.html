@@ -33,7 +33,6 @@
         .hidden { display: none; }
         #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
         .action-icon { cursor: pointer; padding: 5px; opacity: 0.7; font-size: 14px; }
-        .action-icon:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -66,7 +65,10 @@
                 <div class="macro-box">F: <span id="f-text">0/70</span>g<div class="progress-bar"><div id="f-fill" class="progress-fill" style="background:#ffb74d"></div></div></div>
                 <div class="macro-box">C: <span id="c-text">0/250</span>g<div class="progress-bar"><div id="c-fill" class="progress-fill" style="background:#4fc3f7"></div></div></div>
             </div>
-            <h4 style="color:var(--primary); margin-bottom:5px; margin-top:20px;">Today's Log</h4>
+
+            <button class="main-btn" onclick="logDayToHistory()" style="background:var(--secondary); margin-top:20px;">Log Day (Save to History)</button>
+
+            <h4 style="color:var(--primary); margin-bottom:5px; margin-top:25px;">Today's Log</h4>
             <div id="daily-log-list" style="max-height:150px; overflow-y:auto; font-size:13px;"></div>
             <button class="main-btn" onclick="addCustomFoodToLibrary()" style="background:#444; color:white; font-size:12px;">+ Create New Custom Food</button>
         </div>
@@ -88,6 +90,7 @@
                 Import Backup (.JSON)
                 <input type="file" style="display:none;" onchange="importFromFile(this)">
             </label>
+            <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe EVERYTHING? Ensure you have a backup.')){localStorage.clear();location.reload();}">Hard Reset App</button>
         </div>
     </div>
 
@@ -98,28 +101,30 @@
         const masterExercises = ["Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"];
 
         function init() {
-            const today = new Date().toISOString().split('T')[0];
             const saved = localStorage.getItem(STORAGE_KEY);
             const defaults = {
                 routines: [], library: masterExercises, customFoods: [],
-                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, lastUpdate: today, dailyLog: [], history: [] }
+                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] }
             };
             db = saved ? JSON.parse(saved) : defaults;
-            if (db.nutrition.lastUpdate !== today) {
-                if(db.nutrition.consumed.cal > 0) {
-                    db.nutrition.history.unshift({date: db.nutrition.lastUpdate, ...db.nutrition.consumed});
-                    db.nutrition.history = db.nutrition.history.slice(0, 3);
-                }
-                db.nutrition.consumed = { cal: 0, p: 0, f: 0, c: 0 };
-                db.nutrition.dailyLog = [];
-                db.nutrition.lastUpdate = today;
-            }
             save();
         }
 
         function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
 
         // --- NUTRITION LOGIC ---
+        function logDayToHistory() {
+            if(db.nutrition.consumed.cal === 0) { alert("Nothing to log yet!"); return; }
+            if(!confirm("Ready to save today's totals to history and reset?")) return;
+            const dateStr = new Date().toLocaleDateString();
+            db.nutrition.history.unshift({date: dateStr, cal: db.nutrition.consumed.cal, p: db.nutrition.consumed.p, f: db.nutrition.consumed.f, c: db.nutrition.consumed.c});
+            db.nutrition.history = db.nutrition.history.slice(0, 3);
+            db.nutrition.consumed = { cal: 0, p: 0, f: 0, c: 0 };
+            db.nutrition.dailyLog = [];
+            save();
+            alert("Day logged and cleared!");
+        }
+
         function setMacros() {
             db.nutrition.goals.cal = parseInt(prompt("Daily Calories:", db.nutrition.goals.cal)) || 2500;
             db.nutrition.goals.p = parseInt(prompt("Protein Goal (g):", db.nutrition.goals.p)) || 150;
@@ -130,108 +135,63 @@
 
         function addCustomFoodToLibrary(existingFood = null, index = -1) {
             const name = prompt("Food Name:", existingFood ? existingFood.name : ""); if(!name) return;
-            const unit = prompt("Serving Unit (e.g. 1 cup, 100g):", existingFood ? existingFood.unit : "1 portion");
+            const unit = prompt("Serving Unit:", existingFood ? existingFood.unit : "1 portion");
             const cal = parseInt(prompt("Calories:", existingFood ? existingFood.cal : 0)) || 0;
             const p = parseInt(prompt("Protein:", existingFood ? existingFood.p : 0)) || 0;
             const f = parseInt(prompt("Fats:", existingFood ? existingFood.f : 0)) || 0;
             const c = parseInt(prompt("Carbs:", existingFood ? existingFood.c : 0)) || 0;
-            
             const foodObj = { name, unit, cal, p, f, c };
-            if(index > -1) {
-                db.customFoods[index] = foodObj;
-            } else {
-                db.customFoods.push(foodObj);
-            }
+            if(index > -1) db.customFoods[index] = foodObj; else db.customFoods.push(foodObj);
             save();
         }
 
         function deleteFromLibrary(index) {
-            if(confirm("Delete this food from your library?")) {
-                db.customFoods.splice(index, 1);
-                save();
-                document.getElementById('food-results').innerHTML = '';
-                document.getElementById('food-input').value = '';
-            }
+            if(confirm("Delete from library?")) { db.customFoods.splice(index, 1); save(); document.getElementById('food-input').value = ''; }
         }
 
         function logFood(food, multiplier) {
-            const entry = { 
-                id: Date.now(), 
-                name: food.name, 
-                unit: food.unit,
-                base: { cal: food.cal, p: food.p, f: food.f, c: food.c },
-                qty: multiplier,
-                cal: Math.round(food.cal * multiplier), 
-                p: Math.round(food.p * multiplier), 
-                f: Math.round(food.f * multiplier), 
-                c: Math.round(food.c * multiplier) 
-            };
-            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p;
-            db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
+            const entry = { id: Date.now(), name: food.name, unit: food.unit, base: { cal: food.cal, p: food.p, f: food.f, c: food.c }, qty: multiplier, cal: Math.round(food.cal * multiplier), p: Math.round(food.p * multiplier), f: Math.round(food.f * multiplier), c: Math.round(food.c * multiplier) };
+            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p; db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
             db.nutrition.dailyLog.push(entry); save();
         }
 
         function editLoggedFood(id) {
-            const entry = db.nutrition.dailyLog.find(e => e.id === id);
-            if(!entry) return;
-            const newQty = parseFloat(prompt(`Edit quantity for ${entry.name} (${entry.unit}):`, entry.qty));
-            if(!newQty || isNaN(newQty)) return;
-
-            // Subtract old
-            db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p;
-            db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c;
-
-            // Update
-            entry.qty = newQty;
-            entry.cal = Math.round(entry.base.cal * newQty);
-            entry.p = Math.round(entry.base.p * newQty);
-            entry.f = Math.round(entry.base.f * newQty);
-            entry.c = Math.round(entry.base.c * newQty);
-
-            // Add new
-            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p;
-            db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
+            const entry = db.nutrition.dailyLog.find(e => e.id === id); if(!entry) return;
+            const newQty = parseFloat(prompt(`New quantity for ${entry.name}:`, entry.qty)); if(!newQty || isNaN(newQty)) return;
+            db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p; db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c;
+            entry.qty = newQty; entry.cal = Math.round(entry.base.cal * newQty); entry.p = Math.round(entry.base.p * newQty); entry.f = Math.round(entry.base.f * newQty); entry.c = Math.round(entry.base.c * newQty);
+            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p; db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
             save();
         }
 
         function removeFood(id) {
             const entry = db.nutrition.dailyLog.find(e => e.id === id);
-            if(entry) {
-                db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p;
-                db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c;
-                db.nutrition.dailyLog = db.nutrition.dailyLog.filter(e => e.id !== id);
-                save();
-            }
+            if(entry) { db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p; db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c; db.nutrition.dailyLog = db.nutrition.dailyLog.filter(e => e.id !== id); save(); }
         }
 
         // --- WORKOUT LOGIC ---
         function createWorkout() {
-            const n = prompt("Workout Name:");
-            if(n) { db.routines.push({ id: Date.now(), name: n, collapsed: false, exercises: [] }); save(); }
+            const n = prompt("Workout Name:"); if(n) { db.routines.push({ id: Date.now(), name: n, collapsed: false, exercises: [] }); save(); }
         }
 
         function toggleCollapse(id) {
-            const r = db.routines.find(x => x.id === id);
-            r.collapsed = !r.collapsed;
-            save();
+            const r = db.routines.find(x => x.id === id); r.collapsed = !r.collapsed; save();
         }
 
         function toggleSets(rId, exIndex) {
             const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
-            ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1;
-            save();
+            ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save();
         }
 
         function renderWorkouts() {
-            const container = document.getElementById('workout-container');
-            if(!container) return;
+            const container = document.getElementById('workout-container'); if(!container) return;
             container.innerHTML = db.routines.map(r => `
                 <div class="card ${r.collapsed ? 'collapsed' : ''}">
                     <div class="workout-header" onclick="toggleCollapse(${r.id})">
                         <h2 style="margin:0">${r.name}</h2>
                         <div style="display:flex; align-items:center; gap:15px;">
                             <span class="collapse-icon">▼</span>
-                            <span onclick="event.stopPropagation(); if(confirm('Delete?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">✕</span>
+                            <span onclick="event.stopPropagation(); if(confirm('Permanently delete the entire ${r.name} category?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">✕</span>
                         </div>
                     </div>
                     <div class="workout-content">
@@ -252,12 +212,9 @@
         }
 
         function openExMenu(rId) {
-            const overlay = document.getElementById('selection-overlay');
-            overlay.style.display = 'block';
+            const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
             let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
-            db.library.sort().forEach(ex => {
-                html += `<div class="list-item" onclick="db.routines.find(r=>r.id==${rId}).exercises.push({name:'${ex}', setsDone:0, targetSets:3}); document.getElementById('selection-overlay').style.display='none'; save();"><span>${ex}</span><span>+</span></div>`;
-            });
+            db.library.sort().forEach(ex => { html += `<div class="list-item" onclick="db.routines.find(r=>r.id==${rId}).exercises.push({name:'${ex}', setsDone:0, targetSets:3}); document.getElementById('selection-overlay').style.display='none'; save();"><span>${ex}</span><span>+</span></div>`; });
             html += `<button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
             overlay.innerHTML = html;
         }
@@ -265,73 +222,24 @@
         function updateUI() {
             const n = db.nutrition;
             const updateBar = (id, cur, goal) => {
-                const fill = document.getElementById(id + '-fill');
-                const text = document.getElementById(id + '-text');
-                if(fill) fill.style.width = Math.min((cur/goal)*100, 100) + '%';
-                if(text) text.innerText = `${cur} / ${goal}`;
+                const fill = document.getElementById(id + '-fill'); const text = document.getElementById(id + '-text');
+                if(fill) fill.style.width = Math.min((cur/goal)*100, 100) + '%'; if(text) text.innerText = `${cur} / ${goal}`;
             };
-            updateBar('cal', n.consumed.cal, n.goals.cal);
-            updateBar('p', n.consumed.p, n.goals.p);
-            updateBar('f', n.consumed.f, n.goals.f);
-            updateBar('c', n.consumed.c, n.goals.c);
-            
-            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `
-                <div class="list-item" style="padding:8px 0;">
-                    <span>${e.name} <small style="color:#888">(${e.cal}c)</small></span>
-                    <div>
-                        <span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span>
-                        <span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span>
-                    </div>
-                </div>
-            `).join('') || '<p style="color:#666">No food logged yet.</p>';
-
+            updateBar('cal', n.consumed.cal, n.goals.cal); updateBar('p', n.consumed.p, n.goals.p); updateBar('f', n.consumed.f, n.goals.f); updateBar('c', n.consumed.c, n.goals.c);
+            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `<div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>`).join('') || '<p style="color:#666">No food logged yet.</p>';
             document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
             renderWorkouts();
         }
 
         document.getElementById('food-input').addEventListener('input', (e) => {
             const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
-            
-            const resultsDiv = document.getElementById('food-results');
-            resultsDiv.innerHTML = '';
-
-            db.customFoods.forEach((f, idx) => {
-                if(f.name.toLowerCase().includes(q)) {
-                    const row = document.createElement('div');
-                    row.className = 'list-item';
-                    row.innerHTML = `
-                        <div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1">
-                            <span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span>
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <span class="action-icon" onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span>
-                            <span class="action-icon" onclick="deleteFromLibrary(${idx})">🗑</span>
-                        </div>
-                    `;
-                    resultsDiv.appendChild(row);
-                }
-            });
+            const resultsDiv = document.getElementById('food-results'); resultsDiv.innerHTML = '';
+            db.customFoods.forEach((f, idx) => { if(f.name.toLowerCase().includes(q)) { const row = document.createElement('div'); row.className = 'list-item'; row.innerHTML = `<div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span></div><div style="display:flex; gap:10px;"><span onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span><span onclick="deleteFromLibrary(${idx})">🗑</span></div>`; resultsDiv.appendChild(row); } });
         });
 
-        function showTab(t) {
-            document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            document.getElementById(t + '-tab').classList.remove('hidden');
-            event.currentTarget.classList.add('active');
-        }
-
-        function exportToFile() {
-            const blob = new Blob([JSON.stringify(db)], { type: "application/json" });
-            const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
-            link.download = "FlexJournal_Backup.json"; link.click();
-        }
-
-        function importFromFile(input) {
-            const reader = new FileReader();
-            reader.onload = (e) => { db = JSON.parse(e.target.result); save(); location.reload(); };
-            reader.readAsText(input.files[0]);
-        }
-
+        function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
+        function exportToFile() { const blob = new Blob([JSON.stringify(db)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "FlexJournal_Backup.json"; link.click(); }
+        function importFromFile(input) { const reader = new FileReader(); reader.onload = (e) => { db = JSON.parse(e.target.result); save(); location.reload(); }; reader.readAsText(input.files[0]); }
         init();
     </script>
 </body>
