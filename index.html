@@ -214,9 +214,31 @@
         function openExMenu(rId) {
             const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
             let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
-            db.library.sort().forEach(ex => { html += `<div class="list-item" onclick="db.routines.find(r=>r.id==${rId}).exercises.push({name:'${ex}', setsDone:0, targetSets:3}); document.getElementById('selection-overlay').style.display='none'; save();"><span>${ex}</span><span>+</span></div>`; });
+            
+            // NEW: Add custom exercise button at the top
+            html += `<button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>`;
+            
+            db.library.sort().forEach(ex => { 
+                html += `<div class="list-item" onclick="addExerciseToRoutine(${rId}, '${ex.replace(/'/g, "\\'")}');"><span>${ex}</span><span>+</span></div>`; 
+            });
             html += `<button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
             overlay.innerHTML = html;
+        }
+
+        function createCustomExercise(rId) {
+            const n = prompt("Exercise Name:");
+            if(n) {
+                if(!db.library.includes(n)) {
+                    db.library.push(n);
+                }
+                addExerciseToRoutine(rId, n);
+            }
+        }
+
+        function addExerciseToRoutine(rId, name) {
+            db.routines.find(r => r.id === rId).exercises.push({name: name, setsDone: 0, targetSets: 3});
+            document.getElementById('selection-overlay').style.display = 'none';
+            save();
         }
 
         function updateUI() {
