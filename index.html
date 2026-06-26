@@ -203,6 +203,9 @@
                                     <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
                                     <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id}, ${i})">${ex.setsDone}/${ex.targetSets}</button>
                                 </div>
+                                <div style="margin-top: 5px;">
+                                    <input type="text" placeholder="notes" maxlength="140" value="${ex.notes || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()" style="font-size: 12px; padding: 6px 10px; color: #bbb; height: auto;">
+                                </div>
                             </div>
                         `).join('')}
                         <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary); font-size:12px;" onclick="event.stopPropagation(); openExMenu(${r.id})">+ Add Exercise</button>
@@ -215,7 +218,6 @@
             const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
             let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
             
-            // NEW: Add custom exercise button at the top
             html += `<button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>`;
             
             db.library.sort().forEach(ex => { 
@@ -236,7 +238,7 @@
         }
 
         function addExerciseToRoutine(rId, name) {
-            db.routines.find(r => r.id === rId).exercises.push({name: name, setsDone: 0, targetSets: 3});
+            db.routines.find(r => r.id === rId).exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
             document.getElementById('selection-overlay').style.display = 'none';
             save();
         }
