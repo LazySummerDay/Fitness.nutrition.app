@@ -108,7 +108,7 @@
             <button class="main-btn" onclick="exportToFile()">Export Backup (.JSON)</button>
             <label class="main-btn" style="background:#444; color:white; display:block; text-align:center; cursor:pointer; margin-top:15px;">
                 Import Backup (.JSON)
-                <input type="file" style="display:none;" onchange="importFromFile(this)">
+                <input type="file" id="json-file-input" style="display:none;" onchange="importFromFile(this)">
             </label>
             <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe EVERYTHING? Ensure you have a backup.')){localStorage.clear();location.reload();}">Hard Reset App</button>
         </div>
@@ -134,28 +134,51 @@
                 nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] },
                 weightHistory: []
             };
-            if (!rawDB) return defaults;
+            if (!rawDB || typeof rawDB !== 'object') return defaults;
+            
             const clean = { ...defaults, ...rawDB };
             clean.nutrition = { ...defaults.nutrition, ...(rawDB.nutrition || {}) };
             clean.nutrition.consumed = { ...defaults.nutrition.consumed, ...(rawDB.nutrition?.consumed || {}) };
             clean.nutrition.goals = { ...defaults.nutrition.goals, ...(rawDB.nutrition?.goals || {}) };
-            if (!Array.isArray(clean.nutrition.dailyLog)) clean.nutrition.dailyLog = [];
-            if (!Array.isArray(clean.nutrition.history)) clean.nutrition.history = [];
-            if (!Array.isArray(clean.routines)) clean.routines = [];
-            if (!Array.isArray(clean.library)) clean.library = masterExercises;
-            if (!Array.isArray(clean.customFoods)) clean.customFoods = [];
-            if (!Array.isArray(clean.weightHistory)) clean.weightHistory = [];
+            
+            clean.routines = Array.isArray(rawDB.routines) ? rawDB.routines.map(r => ({
+                id: r.id || Date.now(),
+                name: r.name || 'Workout',
+                collapsed: Boolean(r.collapsed),
+                exercises: Array.isArray(r.exercises) ? r.exercises.map(e => ({
+                    name: e.name || 'Exercise',
+                    setsDone: parseInt(e.setsDone) || 0,
+                    targetSets: parseInt(e.targetSets) || 3,
+                    weight: e.weight || '',
+                    reps: e.reps || '',
+                    notes: e.notes || ''
+                })) : []
+            })) : [];
+
+            clean.library = Array.from(new Set([...masterExercises, ...(Array.isArray(rawDB.library) ? rawDB.library : [])]));
+            clean.customFoods = Array.isArray(rawDB.customFoods) ? rawDB.customFoods : [];
+            clean.nutrition.dailyLog = Array.isArray(rawDB.nutrition?.dailyLog) ? rawDB.nutrition.dailyLog : [];
+            clean.nutrition.history = Array.isArray(rawDB.nutrition?.history) ? rawDB.nutrition.history : [];
+            clean.weightHistory = Array.isArray(rawDB.weightHistory) ? rawDB.weightHistory : [];
+
             return clean;
         }
 
         function init() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            db = sanitizeDB(saved ? JSON.parse(saved) : null);
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                db = sanitizeDB(saved ? JSON.parse(saved) : null);
+            } catch(e) {
+                db = sanitizeDB(null);
+            }
             document.getElementById('weight-date-input').value = getFormattedToday();
             save();
         }
 
-        function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
+        function save() { 
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
+            updateUI(); 
+        }
 
         // --- WEIGHT LOGIC ---
         function logBodyWeight() {
@@ -238,12 +261,12 @@
         }
 
         function toggleCollapse(id) {
-            const r = db.routines.find(x => x.id === id); r.collapsed = !r.collapsed; save();
+            const r = db.routines.find(x => x.id === id); if(r) { r.collapsed = !r.collapsed; save(); }
         }
 
         function toggleSets(rId, exIndex) {
             const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
-            ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save();
+            if(ex) { ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save(); }
         }
 
         function renderWorkouts() {
@@ -301,18 +324,26 @@
         }
 
         function addExerciseToRoutine(rId, name) {
-            db.routines.find(r => r.id === rId).exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
-            document.getElementById('selection-overlay').style.display = 'none';
-            save();
+            const routine = db.routines.find(r => r.id === rId);
+            if (routine) {
+                routine.exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
+                document.getElementById('selection-overlay').style.display = 'none';
+                save();
+            }
         }
 
         function updateUI() {
             const n = db.nutrition;
             const updateBar = (id, cur, goal) => {
                 const fill = document.getElementById(id + '-fill'); const text = document.getElementById(id + '-text');
-                if(fill) fill.style.width = Math.min((cur/goal)*100, 100) + '%'; if(text) text.innerText = `${cur} / ${goal}`;
+                if(fill) fill.style.width = Math.min((cur/(goal||1))*100, 100) + '%'; 
+                if(text) text.innerText = `${cur} / ${goal}`;
             };
-            updateBar('cal', n.consumed.cal, n.goals.cal); updateBar('p', n.consumed.p, n.goals.p); updateBar('f', n.consumed.f, n.goals.f); updateBar('c', n.consumed.c, n.goals.c);
+            updateBar('cal', n.consumed.cal, n.goals.cal); 
+            updateBar('p', n.consumed.p, n.goals.p); 
+            updateBar('f', n.consumed.f, n.goals.f); 
+            updateBar('c', n.consumed.c, n.goals.c);
+            
             document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `<div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>`).join('') || '<p style="color:#666">No food logged yet.</p>';
             document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
             
@@ -333,23 +364,39 @@
         });
 
         function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
-        function exportToFile() { const blob = new Blob([JSON.stringify(db)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "FlexJournal_Backup.json"; link.click(); }
+        
+        function exportToFile() { 
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" }); 
+            const link = document.createElement("a"); 
+            link.href = URL.createObjectURL(blob); 
+            link.download = "FlexJournal_Backup.json"; 
+            link.click(); 
+        }
+
         function importFromFile(input) { 
+            const file = input.files && input.files[0];
+            if (!file) return;
+
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 try {
-                    const imported = JSON.parse(e.target.result);
-                    db = sanitizeDB(imported);
+                    const parsed = JSON.parse(e.target.result);
+                    db = sanitizeDB(parsed);
                     save(); 
-                    location.reload(); 
+                    alert("Import successful!");
                 } catch(err) {
-                    alert("Invalid JSON file.");
+                    alert("Failed to import. Error: " + err.message);
+                } finally {
+                    input.value = '';
                 }
             }; 
-            if(input.files && input.files[0]) {
-                reader.readAsText(input.files[0]); 
-            }
+            reader.onerror = () => {
+                alert("Could not read file.");
+                input.value = '';
+            };
+            reader.readAsText(file); 
         }
+
         init();
     </script>
 </body>
