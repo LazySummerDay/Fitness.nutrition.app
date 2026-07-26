@@ -128,16 +128,29 @@
             return `${d}/${m}/${y}`;
         }
 
-        function init() {
-            const saved = localStorage.getItem(STORAGE_KEY);
+        function sanitizeDB(rawDB) {
             const defaults = {
                 routines: [], library: masterExercises, customFoods: [],
                 nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] },
                 weightHistory: []
             };
-            db = saved ? JSON.parse(saved) : defaults;
-            if(!db.weightHistory) db.weightHistory = [];
-            
+            if (!rawDB) return defaults;
+            const clean = { ...defaults, ...rawDB };
+            clean.nutrition = { ...defaults.nutrition, ...(rawDB.nutrition || {}) };
+            clean.nutrition.consumed = { ...defaults.nutrition.consumed, ...(rawDB.nutrition?.consumed || {}) };
+            clean.nutrition.goals = { ...defaults.nutrition.goals, ...(rawDB.nutrition?.goals || {}) };
+            if (!Array.isArray(clean.nutrition.dailyLog)) clean.nutrition.dailyLog = [];
+            if (!Array.isArray(clean.nutrition.history)) clean.nutrition.history = [];
+            if (!Array.isArray(clean.routines)) clean.routines = [];
+            if (!Array.isArray(clean.library)) clean.library = masterExercises;
+            if (!Array.isArray(clean.customFoods)) clean.customFoods = [];
+            if (!Array.isArray(clean.weightHistory)) clean.weightHistory = [];
+            return clean;
+        }
+
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            db = sanitizeDB(saved ? JSON.parse(saved) : null);
             document.getElementById('weight-date-input').value = getFormattedToday();
             save();
         }
@@ -151,7 +164,7 @@
             if(!dateVal || !weightVal) { alert("Please enter both Date and Weight."); return; }
 
             db.weightHistory.unshift({ id: Date.now(), date: dateVal, weight: weightVal });
-            db.weightHistory = db.weightHistory.slice(0, 14); // Keep last 14 entries (2 weeks)
+            db.weightHistory = db.weightHistory.slice(0, 14);
             document.getElementById('weight-value-input').value = '';
             document.getElementById('weight-date-input').value = getFormattedToday();
             save();
@@ -321,7 +334,22 @@
 
         function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
         function exportToFile() { const blob = new Blob([JSON.stringify(db)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "FlexJournal_Backup.json"; link.click(); }
-        function importFromFile(input) { const reader = new FileReader(); reader.onload = (e) => { db = JSON.parse(e.target.result); save(); location.reload(); }; reader.readAsText(input.files[0]); }
+        function importFromFile(input) { 
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    db = sanitizeDB(imported);
+                    save(); 
+                    location.reload(); 
+                } catch(err) {
+                    alert("Invalid JSON file.");
+                }
+            }; 
+            if(input.files && input.files[0]) {
+                reader.readAsText(input.files[0]); 
+            }
+        }
         init();
     </script>
 </body>
