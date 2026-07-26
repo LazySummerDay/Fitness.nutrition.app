@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FlexJournal Pro</title>
-    <link rel="apple-touch-icon" href="icon.png.PNG">
+    <link rel="apple-touch-icon" href="icon.png.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
@@ -42,7 +42,6 @@
     <div class="tab-bar">
         <div class="tab active" onclick="showTab('workout')">Workouts</div>
         <div class="tab" onclick="showTab('nutrition')">Nutrition</div>
-        <div class="tab" onclick="showTab('weight')">Weight</div>
         <div class="tab" onclick="showTab('data')">Settings</div>
     </div>
 
@@ -83,32 +82,13 @@
         </div>
     </div>
 
-    <div id="weight-tab" class="content-tab hidden">
-        <div class="card">
-            <h2 style="margin-top:0; margin-bottom:15px;">Log Body Weight</h2>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Date</label>
-                <input type="text" id="weight-date-input" placeholder="DD/MM/YYYY">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Weight</label>
-                <input type="text" id="weight-value-input" placeholder="e.g. 175 lbs or 80 kg">
-            </div>
-            <button class="main-btn" style="background:var(--secondary);" onclick="logBodyWeight()">Log Weight Entry</button>
-        </div>
-        <div class="card">
-            <h3 style="margin-top:0">2-Week Saved History</h3>
-            <div id="weight-history-container"></div>
-        </div>
-    </div>
-
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
             <h2>Data Management</h2>
             <button class="main-btn" onclick="exportToFile()">Export Backup (.JSON)</button>
             <label class="main-btn" style="background:#444; color:white; display:block; text-align:center; cursor:pointer; margin-top:15px;">
                 Import Backup (.JSON)
-                <input type="file" id="json-file-input" style="display:none;" onchange="importFromFile(this)">
+                <input type="file" style="display:none;" onchange="importFromFile(this)">
             </label>
             <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe EVERYTHING? Ensure you have a backup.')){localStorage.clear();location.reload();}">Hard Reset App</button>
         </div>
@@ -120,83 +100,17 @@
 
         const masterExercises = ["Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"];
 
-        function getFormattedToday() {
-            const now = new Date();
-            const d = String(now.getDate()).padStart(2, '0');
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const y = now.getFullYear();
-            return `${d}/${m}/${y}`;
-        }
-
-        function sanitizeDB(rawDB) {
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
             const defaults = {
                 routines: [], library: masterExercises, customFoods: [],
-                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] },
-                weightHistory: []
+                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] }
             };
-            if (!rawDB || typeof rawDB !== 'object') return defaults;
-            
-            const clean = { ...defaults, ...rawDB };
-            clean.nutrition = { ...defaults.nutrition, ...(rawDB.nutrition || {}) };
-            clean.nutrition.consumed = { ...defaults.nutrition.consumed, ...(rawDB.nutrition?.consumed || {}) };
-            clean.nutrition.goals = { ...defaults.nutrition.goals, ...(rawDB.nutrition?.goals || {}) };
-            
-            clean.routines = Array.isArray(rawDB.routines) ? rawDB.routines.map(r => ({
-                id: r.id || Date.now(),
-                name: r.name || 'Workout',
-                collapsed: Boolean(r.collapsed),
-                exercises: Array.isArray(r.exercises) ? r.exercises.map(e => ({
-                    name: e.name || 'Exercise',
-                    setsDone: parseInt(e.setsDone) || 0,
-                    targetSets: parseInt(e.targetSets) || 3,
-                    weight: e.weight || '',
-                    reps: e.reps || '',
-                    notes: e.notes || ''
-                })) : []
-            })) : [];
-
-            clean.library = Array.from(new Set([...masterExercises, ...(Array.isArray(rawDB.library) ? rawDB.library : [])]));
-            clean.customFoods = Array.isArray(rawDB.customFoods) ? rawDB.customFoods : [];
-            clean.nutrition.dailyLog = Array.isArray(rawDB.nutrition?.dailyLog) ? rawDB.nutrition.dailyLog : [];
-            clean.nutrition.history = Array.isArray(rawDB.nutrition?.history) ? rawDB.nutrition.history : [];
-            clean.weightHistory = Array.isArray(rawDB.weightHistory) ? rawDB.weightHistory : [];
-
-            return clean;
-        }
-
-        function init() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                db = sanitizeDB(saved ? JSON.parse(saved) : null);
-            } catch(e) {
-                db = sanitizeDB(null);
-            }
-            document.getElementById('weight-date-input').value = getFormattedToday();
+            db = saved ? JSON.parse(saved) : defaults;
             save();
         }
 
-        function save() { 
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
-            updateUI(); 
-        }
-
-        // --- WEIGHT LOGIC ---
-        function logBodyWeight() {
-            const dateVal = document.getElementById('weight-date-input').value.trim();
-            const weightVal = document.getElementById('weight-value-input').value.trim();
-            if(!dateVal || !weightVal) { alert("Please enter both Date and Weight."); return; }
-
-            db.weightHistory.unshift({ id: Date.now(), date: dateVal, weight: weightVal });
-            db.weightHistory = db.weightHistory.slice(0, 14);
-            document.getElementById('weight-value-input').value = '';
-            document.getElementById('weight-date-input').value = getFormattedToday();
-            save();
-        }
-
-        function removeWeightEntry(id) {
-            db.weightHistory = db.weightHistory.filter(w => w.id !== id);
-            save();
-        }
+        function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
 
         // --- NUTRITION LOGIC ---
         function logDayToHistory() {
@@ -261,12 +175,12 @@
         }
 
         function toggleCollapse(id) {
-            const r = db.routines.find(x => x.id === id); if(r) { r.collapsed = !r.collapsed; save(); }
+            const r = db.routines.find(x => x.id === id); r.collapsed = !r.collapsed; save();
         }
 
         function toggleSets(rId, exIndex) {
             const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
-            if(ex) { ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save(); }
+            ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save();
         }
 
         function renderWorkouts() {
@@ -324,36 +238,20 @@
         }
 
         function addExerciseToRoutine(rId, name) {
-            const routine = db.routines.find(r => r.id === rId);
-            if (routine) {
-                routine.exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
-                document.getElementById('selection-overlay').style.display = 'none';
-                save();
-            }
+            db.routines.find(r => r.id === rId).exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
+            document.getElementById('selection-overlay').style.display = 'none';
+            save();
         }
 
         function updateUI() {
             const n = db.nutrition;
             const updateBar = (id, cur, goal) => {
                 const fill = document.getElementById(id + '-fill'); const text = document.getElementById(id + '-text');
-                if(fill) fill.style.width = Math.min((cur/(goal||1))*100, 100) + '%'; 
-                if(text) text.innerText = `${cur} / ${goal}`;
+                if(fill) fill.style.width = Math.min((cur/goal)*100, 100) + '%'; if(text) text.innerText = `${cur} / ${goal}`;
             };
-            updateBar('cal', n.consumed.cal, n.goals.cal); 
-            updateBar('p', n.consumed.p, n.goals.p); 
-            updateBar('f', n.consumed.f, n.goals.f); 
-            updateBar('c', n.consumed.c, n.goals.c);
-            
+            updateBar('cal', n.consumed.cal, n.goals.cal); updateBar('p', n.consumed.p, n.goals.p); updateBar('f', n.consumed.f, n.goals.f); updateBar('c', n.consumed.c, n.goals.c);
             document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `<div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>`).join('') || '<p style="color:#666">No food logged yet.</p>';
             document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
-            
-            document.getElementById('weight-history-container').innerHTML = db.weightHistory.map(w => `
-                <div class="list-item" style="padding:8px 0;">
-                    <span><strong>${w.date}</strong> — ${w.weight}</span>
-                    <span class="action-icon" onclick="removeWeightEntry(${w.id})" style="color:var(--error); font-weight:bold;">✕</span>
-                </div>
-            `).join('') || '<p style="color:#666; font-size:12px;">No weight entries yet.</p>';
-
             renderWorkouts();
         }
 
@@ -364,39 +262,8 @@
         });
 
         function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
-        
-        function exportToFile() { 
-            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" }); 
-            const link = document.createElement("a"); 
-            link.href = URL.createObjectURL(blob); 
-            link.download = "FlexJournal_Backup.json"; 
-            link.click(); 
-        }
-
-        function importFromFile(input) { 
-            const file = input.files && input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader(); 
-            reader.onload = (e) => { 
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    db = sanitizeDB(parsed);
-                    save(); 
-                    alert("Import successful!");
-                } catch(err) {
-                    alert("Failed to import. Error: " + err.message);
-                } finally {
-                    input.value = '';
-                }
-            }; 
-            reader.onerror = () => {
-                alert("Could not read file.");
-                input.value = '';
-            };
-            reader.readAsText(file); 
-        }
-
+        function exportToFile() { const blob = new Blob([JSON.stringify(db)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "FlexJournal_Backup.json"; link.click(); }
+        function importFromFile(input) { const reader = new FileReader(); reader.onload = (e) => { db = JSON.parse(e.target.result); save(); location.reload(); }; reader.readAsText(input.files[0]); }
         init();
     </script>
 </body>
