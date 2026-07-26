@@ -42,6 +42,7 @@
     <div class="tab-bar">
         <div class="tab active" onclick="showTab('workout')">Workouts</div>
         <div class="tab" onclick="showTab('nutrition')">Nutrition</div>
+        <div class="tab" onclick="showTab('weight')">Weight</div>
         <div class="tab" onclick="showTab('data')">Settings</div>
     </div>
 
@@ -82,6 +83,25 @@
         </div>
     </div>
 
+    <div id="weight-tab" class="content-tab hidden">
+        <div class="card">
+            <h2 style="margin-top:0; margin-bottom:15px;">Log Body Weight</h2>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Date</label>
+                <input type="text" id="weight-date-input" placeholder="DD/MM/YYYY">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Weight</label>
+                <input type="text" id="weight-value-input" placeholder="e.g. 175 lbs or 80 kg">
+            </div>
+            <button class="main-btn" style="background:var(--secondary);" onclick="logBodyWeight()">Log Weight Entry</button>
+        </div>
+        <div class="card">
+            <h3 style="margin-top:0">2-Week Saved History</h3>
+            <div id="weight-history-container"></div>
+        </div>
+    </div>
+
     <div id="data-tab" class="content-tab hidden">
         <div class="card">
             <h2>Data Management</h2>
@@ -100,17 +120,47 @@
 
         const masterExercises = ["Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"];
 
+        function getFormattedToday() {
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
+
         function init() {
             const saved = localStorage.getItem(STORAGE_KEY);
             const defaults = {
                 routines: [], library: masterExercises, customFoods: [],
-                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] }
+                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] },
+                weightHistory: []
             };
             db = saved ? JSON.parse(saved) : defaults;
+            if(!db.weightHistory) db.weightHistory = [];
+            
+            document.getElementById('weight-date-input').value = getFormattedToday();
             save();
         }
 
         function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); updateUI(); }
+
+        // --- WEIGHT LOGIC ---
+        function logBodyWeight() {
+            const dateVal = document.getElementById('weight-date-input').value.trim();
+            const weightVal = document.getElementById('weight-value-input').value.trim();
+            if(!dateVal || !weightVal) { alert("Please enter both Date and Weight."); return; }
+
+            db.weightHistory.unshift({ id: Date.now(), date: dateVal, weight: weightVal });
+            db.weightHistory = db.weightHistory.slice(0, 14); // Keep last 14 entries (2 weeks)
+            document.getElementById('weight-value-input').value = '';
+            document.getElementById('weight-date-input').value = getFormattedToday();
+            save();
+        }
+
+        function removeWeightEntry(id) {
+            db.weightHistory = db.weightHistory.filter(w => w.id !== id);
+            save();
+        }
 
         // --- NUTRITION LOGIC ---
         function logDayToHistory() {
@@ -252,6 +302,14 @@
             updateBar('cal', n.consumed.cal, n.goals.cal); updateBar('p', n.consumed.p, n.goals.p); updateBar('f', n.consumed.f, n.goals.f); updateBar('c', n.consumed.c, n.goals.c);
             document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `<div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>`).join('') || '<p style="color:#666">No food logged yet.</p>';
             document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
+            
+            document.getElementById('weight-history-container').innerHTML = db.weightHistory.map(w => `
+                <div class="list-item" style="padding:8px 0;">
+                    <span><strong>${w.date}</strong> — ${w.weight}</span>
+                    <span class="action-icon" onclick="removeWeightEntry(${w.id})" style="color:var(--error); font-weight:bold;">✕</span>
+                </div>
+            `).join('') || '<p style="color:#666; font-size:12px;">No weight entries yet.</p>';
+
             renderWorkouts();
         }
 
