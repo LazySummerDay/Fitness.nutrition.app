@@ -283,14 +283,14 @@
                     <div class="workout-header" onclick="toggleCollapse(${r.id})">
                         <h2 style="margin:0">${r.name}</h2>
                         <div style="display:flex; align-items:center; gap:15px;">
-                            <span class="collapse-icon">â–¼</span>
-                            <span onclick="event.stopPropagation(); if(confirm('Permanently delete the entire ${r.name} category?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">âœ•</span>
+                            <span class="collapse-icon">▼</span>
+                            <span onclick="event.stopPropagation(); if(confirm('Permanently delete the entire ${r.name} category?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">✕</span>
                         </div>
                     </div>
                     <div class="workout-content">
                         ${r.exercises.map((ex, i) => `
                             <div style="margin-bottom:15px; border-bottom:1px solid #2a2a2a; padding-bottom:10px;">
-                                <div style="display:flex; justify-content:space-between"><strong>${ex.name}</strong> <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="opacity:0.3">âœ•</span></div>
+                                <div style="display:flex; justify-content:space-between"><strong>${ex.name}</strong> <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="opacity:0.3">✕</span></div>
                                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:5px;">
                                     <input type="text" placeholder="wt" value="${ex.weight || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
                                     <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
@@ -351,13 +351,13 @@
             updateBar('f', n.consumed.f, n.goals.f); 
             updateBar('c', n.consumed.c, n.goals.c);
             
-            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => <div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">âœŽ</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">âœ•</span></div></div>).join('') || '<p style="color:#666">No food logged yet.</p>';
+            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => <div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>).join('') || '<p style="color:#666">No food logged yet.</p>';
             document.getElementById('history-container').innerHTML = n.history.map(h => <div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>).join('');
             
             document.getElementById('weight-history-container').innerHTML = db.weightHistory.map(w => `
                 <div class="list-item" style="padding:8px 0;">
-                    <span><strong>${w.date}</strong> â€” ${w.weight}</span>
-                    <span class="action-icon" onclick="removeWeightEntry(${w.id})" style="color:var(--error); font-weight:bold;">âœ•</span>
+                    <span><strong>${w.date}</strong> — ${w.weight}</span>
+                    <span class="action-icon" onclick="removeWeightEntry(${w.id})" style="color:var(--error); font-weight:bold;">✕</span>
                 </div>
             `).join('') || '<p style="color:#666; font-size:12px;">No weight entries yet.</p>';
 
@@ -367,7 +367,7 @@
         document.getElementById('food-input').addEventListener('input', (e) => {
             const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
             const resultsDiv = document.getElementById('food-results'); resultsDiv.innerHTML = '';
-            db.customFoods.forEach((f, idx) => { if(f.name.toLowerCase().includes(q)) { const row = document.createElement('div'); row.className = 'list-item'; row.innerHTML = <div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span></div><div style="display:flex; gap:10px;"><span onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">âœŽ</span><span onclick="deleteFromLibrary(${idx})">ðŸ—‘</span></div>; resultsDiv.appendChild(row); } });
+            db.customFoods.forEach((f, idx) => { if(f.name.toLowerCase().includes(q)) { const row = document.createElement('div'); row.className = 'list-item'; row.innerHTML = <div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span></div><div style="display:flex; gap:10px;"><span onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span><span onclick="deleteFromLibrary(${idx})">🗑</span></div>; resultsDiv.appendChild(row); } });
         });
 
         function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
