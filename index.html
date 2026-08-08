@@ -1,428 +1,403 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlexJournal Pro</title>
-    <link rel="apple-touch-icon" href="icon.png.PNG">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <style>
-        :root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679; }
-        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px;}
-        .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
-        .tab { flex: 1; padding: 12px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1px solid transparent; }
-        .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
-        
-        .workout-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .workout-content { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
-        .collapsed .workout-content { display: none; }
-        .collapse-icon { transition: transform 0.2s; font-size: 12px; color: var(--primary); }
-        .collapsed .collapse-icon { transform: rotate(-90deg); }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FlexJournal</title>
+    <link rel="apple-touch-icon" href="icon.png.PNG">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679; }
+        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px;}
+        .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
+        .tab { flex: 1; padding: 12px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1px solid transparent; }
+        .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
+        
+        .workout-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .workout-content { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        .collapsed .workout-content { display: none; }
+        .collapse-icon { transition: transform 0.2s; font-size: 12px; color: var(--primary); }
+        .collapsed .collapse-icon { transform: rotate(-90deg); }
 
-        .macro-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .macro-box { text-align: center; font-size: 11px; background: #2a2a2a; padding: 8px; border-radius: 6px; }
-        .progress-bar { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin: 5px 0; }
-        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
-        input, select, textarea { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; }
-        button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
-        .set-btn { background: #444; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; height: 40px; }
-        .set-btn.complete { background: var(--secondary); color: black; }
-        .list-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .hidden { display: none; }
-        #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
-        .action-icon { cursor: pointer; padding: 5px; opacity: 0.7; font-size: 14px; }
-    </style>
+        .macro-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .macro-box { text-align: center; font-size: 11px; background: #2a2a2a; padding: 8px; border-radius: 6px; }
+        .progress-bar { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin: 5px 0; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        input, select { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; }
+        button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
+        .set-btn { background: #444; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; height: 40px; }
+        .set-btn.complete { background: var(--secondary); color: black; }
+        .list-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .hidden { display: none; }
+        #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
+        .action-icon { cursor: pointer; padding: 5px; opacity: 0.7; font-size: 14px; }
+    </style>
 </head>
 <body>
 
-    <div id="selection-overlay"></div>
+    <div id="selection-overlay"></div>
 
-    <div class="tab-bar">
-        <div class="tab active" onclick="showTab('workout')">Workouts</div>
-        <div class="tab" onclick="showTab('nutrition')">Nutrition</div>
-        <div class="tab" onclick="showTab('weight')">Weight</div>
-        <div class="tab" onclick="showTab('data')">Settings</div>
-    </div>
+    <div class="tab-bar">
+        <div class="tab active" onclick="showTab('workout')">Workouts</div>
+        <div class="tab" onclick="showTab('nutrition')">Nutrition</div>
+        <div class="tab" onclick="showTab('weight')">Weight</div>
+        <div class="tab" onclick="showTab('data')">Settings</div>
+    </div>
 
-    <div id="workout-tab" class="content-tab">
-        <div id="workout-container"></div>
-        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ New Workout Category</button>
-    </div>
+    <div id="workout-tab" class="content-tab">
+        <div id="workout-container"></div>
+        <button class="main-btn" style="background: var(--secondary);" onclick="createWorkout()">+ New Workout Category</button>
+    </div>
 
-    <div id="nutrition-tab" class="content-tab hidden">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 style="margin:0">Nutrition</h2>
-                <button onclick="setMacros()" style="background:none; border:1px solid var(--primary); color:var(--primary); padding:4px 8px; border-radius:4px; font-size:11px;">Set Goals</button>
-            </div>
-            <div style="margin-top:15px;">
-                <div style="display:flex; justify-content:space-between"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
-                <div class="progress-bar"><div id="cal-fill" class="progress-fill"></div></div>
-            </div>
-            <div class="macro-grid">
-                <div class="macro-box">P: <span id="p-text">0/150</span>g<div class="progress-bar"><div id="p-fill" class="progress-fill" style="background:var(--secondary)"></div></div></div>
-                <div class="macro-box">F: <span id="f-text">0/70</span>g<div class="progress-bar"><div id="f-fill" class="progress-fill" style="background:#ffb74d"></div></div></div>
-                <div class="macro-box">C: <span id="c-text">0/250</span>g<div class="progress-bar"><div id="c-fill" class="progress-fill" style="background:#4fc3f7"></div></div></div>
-            </div>
+    <div id="nutrition-tab" class="content-tab hidden">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="margin:0">Nutrition</h2>
+                <button onclick="setMacros()" style="background:none; border:1px solid var(--primary); color:var(--primary); padding:4px 8px; border-radius:4px; font-size:11px;">Set Goals</button>
+            </div>
+            <div style="margin-top:15px;">
+                <div style="display:flex; justify-content:space-between"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
+                <div class="progress-bar"><div id="cal-fill" class="progress-fill"></div></div>
+            </div>
+            <div class="macro-grid">
+                <div class="macro-box">P: <span id="p-text">0/150</span>g<div class="progress-bar"><div id="p-fill" class="progress-fill" style="background:var(--secondary)"></div></div></div>
+                <div class="macro-box">F: <span id="f-text">0/70</span>g<div class="progress-bar"><div id="f-fill" class="progress-fill" style="background:#ffb74d"></div></div></div>
+                <div class="macro-box">C: <span id="c-text">0/250</span>g<div class="progress-bar"><div id="c-fill" class="progress-fill" style="background:#4fc3f7"></div></div></div>
+            </div>
 
-            <button class="main-btn" onclick="logDayToHistory()" style="background:var(--secondary); margin-top:20px;">Log Day (Save to History)</button>
+            <button class="main-btn" onclick="logDayToHistory()" style="background:var(--secondary); margin-top:20px;">Log Day (Save to History)</button>
 
-            <h4 style="color:var(--primary); margin-bottom:5px; margin-top:25px;">Today's Log</h4>
-            <div id="daily-log-list" style="max-height:150px; overflow-y:auto; font-size:13px;"></div>
-            <button class="main-btn" onclick="addCustomFoodToLibrary()" style="background:#444; color:white; font-size:12px;">+ Create New Custom Food</button>
-        </div>
-        <div class="card">
-            <input type="text" id="food-input" placeholder="Search Food Library...">
-            <div id="food-results"></div>
-        </div>
-        <div class="card">
-            <h3 style="margin-top:0">3-Day History</h3>
-            <div id="history-container"></div>
-        </div>
-    </div>
+            <h4 style="color:var(--primary); margin-bottom:5px; margin-top:25px;">Today's Log</h4>
+            <div id="daily-log-list" style="max-height:150px; overflow-y:auto; font-size:13px;"></div>
+            <button class="main-btn" onclick="addCustomFoodToLibrary()" style="background:#444; color:white; font-size:12px;">+ Create New Custom Food</button>
+        </div>
+        <div class="card">
+            <input type="text" id="food-input" placeholder="Search Food Library...">
+            <div id="food-results"></div>
+        </div>
+        <div class="card">
+            <h3 style="margin-top:0">3-Day History</h3>
+            <div id="history-container"></div>
+        </div>
+    </div>
 
-    <div id="weight-tab" class="content-tab hidden">
-        <div class="card">
-            <h2 style="margin-top:0; margin-bottom:15px;">Log Body Weight</h2>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Date</label>
-                <input type="text" id="weight-date-input" placeholder="DD/MM/YYYY">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Weight</label>
-                <input type="text" id="weight-value-input" placeholder="e.g. 175 lbs or 80 kg">
-            </div>
-            <button class="main-btn" style="background:var(--secondary);" onclick="logBodyWeight()">Log Weight Entry</button>
-        </div>
-        <div class="card">
-            <h3 style="margin-top:0">2-Week Saved History</h3>
-            <div id="weight-history-container"></div>
-        </div>
-    </div>
+    <div id="weight-tab" class="content-tab hidden">
+        <div class="card">
+            <h2 style="margin-top:0; margin-bottom:15px;">Log Body Weight</h2>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Date</label>
+                <input type="text" id="weight-date-input" placeholder="DD/MM/YYYY">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">Weight</label>
+                <input type="text" id="weight-value-input" placeholder="e.g. 175 lbs or 80 kg">
+            </div>
+            <button class="main-btn" style="background:var(--secondary);" onclick="logBodyWeight()">Log Weight Entry</button>
+        </div>
+        <div class="card">
+            <h3 style="margin-top:0">2-Week Saved History</h3>
+            <div id="weight-history-container"></div>
+        </div>
+    </div>
 
-    <div id="data-tab" class="content-tab hidden">
-        <div class="card">
-            <h2>Data Management</h2>
-            <button class="main-btn" onclick="exportToFile()">Export Backup (.JSON)</button>
-            <label class="main-btn" style="background:#444; color:white; display:block; text-align:center; cursor:pointer; margin-top:15px;">
-                Import Backup (.JSON)
-                <input type="file" id="json-file-input" style="display:none;" onchange="importFromFile(this)">
-            </label>
+    <div id="data-tab" class="content-tab hidden">
+        <div class="card">
+            <h2>Data Management</h2>
+            <button class="main-btn" onclick="exportToFile()">Export Backup (.JSON)</button>
+            <label class="main-btn" style="background:#444; color:white; display:block; text-align:center; cursor:pointer; margin-top:15px;">
+                Import Backup (.JSON)
+                <input type="file" id="json-file-input" style="display:none;" onchange="importFromFile(this)">
+            </label>
+            <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe EVERYTHING? Ensure you have a backup.')){localStorage.clear();location.reload();}">Hard Reset App</button>
+        </div>
+    </div>
 
-            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+    <script>
+        const STORAGE_KEY = 'FlexJournal_PRO_V3';
+        let db;
 
-            <h3 style="margin-top:0;">Paste Data Restore</h3>
-            <textarea id="paste-json-input" placeholder="Paste JSON data here..." style="height:90px; font-family:monospace; font-size:11px;"></textarea>
-            <button class="main-btn" style="background:var(--secondary); color:black; margin-top:10px;" onclick="importFromPastedText()">Restore from Pasted Text</button>
+        const masterExercises = ["Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"];
 
-            <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe EVERYTHING? Ensure you have a backup.')){localStorage.clear();location.reload();}">Hard Reset App</button>
-        </div>
-    </div>
+        function getFormattedToday() {
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
 
-    <script>
-        const STORAGE_KEY = 'FlexJournal_PRO_V3';
-        let db;
+        function sanitizeDB(rawDB) {
+            const defaults = {
+                routines: [], library: masterExercises, customFoods: [],
+                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] },
+                weightHistory: []
+            };
+            if (!rawDB || typeof rawDB !== 'object') return defaults;
+            
+            const clean = { ...defaults, ...rawDB };
+            clean.nutrition = { ...defaults.nutrition, ...(rawDB.nutrition || {}) };
+            clean.nutrition.consumed = { ...defaults.nutrition.consumed, ...(rawDB.nutrition?.consumed || {}) };
+            clean.nutrition.goals = { ...defaults.nutrition.goals, ...(rawDB.nutrition?.goals || {}) };
+            
+            clean.routines = Array.isArray(rawDB.routines) ? rawDB.routines.map(r => ({
+                id: r.id || Date.now(),
+                name: r.name || 'Workout',
+                collapsed: Boolean(r.collapsed),
+                exercises: Array.isArray(r.exercises) ? r.exercises.map(e => ({
+                    name: e.name || 'Exercise',
+                    setsDone: parseInt(e.setsDone) || 0,
+                    targetSets: parseInt(e.targetSets) || 3,
+                    weight: e.weight || '',
+                    reps: e.reps || '',
+                    notes: e.notes || ''
+                })) : []
+            })) : [];
 
-        const masterExercises = ["Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"];
+            clean.library = Array.from(new Set([...masterExercises, ...(Array.isArray(rawDB.library) ? rawDB.library : [])]));
+            clean.customFoods = Array.isArray(rawDB.customFoods) ? rawDB.customFoods : [];
+            clean.nutrition.dailyLog = Array.isArray(rawDB.nutrition?.dailyLog) ? rawDB.nutrition.dailyLog : [];
+            clean.nutrition.history = Array.isArray(rawDB.nutrition?.history) ? rawDB.nutrition.history : [];
+            clean.weightHistory = Array.isArray(rawDB.weightHistory) ? rawDB.weightHistory : [];
 
-        function getFormattedToday() {
-            const now = new Date();
-            const d = String(now.getDate()).padStart(2, '0');
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const y = now.getFullYear();
-            return ${d}/${m}/${y};
-        }
+            return clean;
+        }
 
-        function sanitizeDB(rawDB) {
-            const defaults = {
-                routines: [], library: masterExercises, customFoods: [],
-                nutrition: { consumed: { cal: 0, p: 0, f: 0, c: 0 }, goals: { cal: 2500, p: 150, f: 70, c: 250 }, dailyLog: [], history: [] },
-                weightHistory: []
-            };
-            if (!rawDB || typeof rawDB !== 'object') return defaults;
-            
-            const clean = { ...defaults, ...rawDB };
-            clean.nutrition = { ...defaults.nutrition, ...(rawDB.nutrition || {}) };
-            clean.nutrition.consumed = { ...defaults.nutrition.consumed, ...(rawDB.nutrition?.consumed || {}) };
-            clean.nutrition.goals = { ...defaults.nutrition.goals, ...(rawDB.nutrition?.goals || {}) };
-            
-            clean.routines = Array.isArray(rawDB.routines) ? rawDB.routines.map(r => ({
-                id: r.id || Date.now(),
-                name: r.name || 'Workout',
-                collapsed: Boolean(r.collapsed),
-                exercises: Array.isArray(r.exercises) ? r.exercises.map(e => ({
-                    name: e.name || 'Exercise',
-                    setsDone: parseInt(e.setsDone) || 0,
-                    targetSets: parseInt(e.targetSets) || 3,
-                    weight: e.weight || '',
-                    reps: e.reps || '',
-                    notes: e.notes || ''
-                })) : []
-            })) : [];
+        function init() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                db = sanitizeDB(saved ? JSON.parse(saved) : null);
+            } catch(e) {
+                db = sanitizeDB(null);
+            }
+            document.getElementById('weight-date-input').value = getFormattedToday();
+            save();
+        }
 
-            clean.library = Array.from(new Set([...masterExercises, ...(Array.isArray(rawDB.library) ? rawDB.library : [])]));
-            clean.customFoods = Array.isArray(rawDB.customFoods) ? rawDB.customFoods : [];
-            clean.nutrition.dailyLog = Array.isArray(rawDB.nutrition?.dailyLog) ? rawDB.nutrition.dailyLog : [];
-            clean.nutrition.history = Array.isArray(rawDB.nutrition?.history) ? rawDB.nutrition.history : [];
-            clean.weightHistory = Array.isArray(rawDB.weightHistory) ? rawDB.weightHistory : [];
+        function save() { 
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
+            updateUI(); 
+        }
 
-            return clean;
-        }
+        // --- WEIGHT LOGIC ---
+        function logBodyWeight() {
+            const dateVal = document.getElementById('weight-date-input').value.trim();
+            const weightVal = document.getElementById('weight-value-input').value.trim();
+            if(!dateVal || !weightVal) { alert("Please enter both Date and Weight."); return; }
 
-        function init() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                db = sanitizeDB(saved ? JSON.parse(saved) : null);
-            } catch(e) {
-                db = sanitizeDB(null);
-            }
-            document.getElementById('weight-date-input').value = getFormattedToday();
-            save();
-        }
+            db.weightHistory.unshift({ id: Date.now(), date: dateVal, weight: weightVal });
+            db.weightHistory = db.weightHistory.slice(0, 14);
+            document.getElementById('weight-value-input').value = '';
+            document.getElementById('weight-date-input').value = getFormattedToday();
+            save();
+        }
 
-        function save() { 
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
-            updateUI(); 
-        }
+        function removeWeightEntry(id) {
+            db.weightHistory = db.weightHistory.filter(w => w.id !== id);
+            save();
+        }
 
-        // --- WEIGHT LOGIC ---
-        function logBodyWeight() {
-            const dateVal = document.getElementById('weight-date-input').value.trim();
-            const weightVal = document.getElementById('weight-value-input').value.trim();
-            if(!dateVal || !weightVal) { alert("Please enter both Date and Weight."); return; }
+        // --- NUTRITION LOGIC ---
+        function logDayToHistory() {
+            if(db.nutrition.consumed.cal === 0) { alert("Nothing to log yet!"); return; }
+            if(!confirm("Ready to save today's totals to history and reset?")) return;
+            const dateStr = new Date().toLocaleDateString();
+            db.nutrition.history.unshift({date: dateStr, cal: db.nutrition.consumed.cal, p: db.nutrition.consumed.p, f: db.nutrition.consumed.f, c: db.nutrition.consumed.c});
+            db.nutrition.history = db.nutrition.history.slice(0, 3);
+            db.nutrition.consumed = { cal: 0, p: 0, f: 0, c: 0 };
+            db.nutrition.dailyLog = [];
+            save();
+            alert("Day logged and cleared!");
+        }
 
-            db.weightHistory.unshift({ id: Date.now(), date: dateVal, weight: weightVal });
-            db.weightHistory = db.weightHistory.slice(0, 14);
-            document.getElementById('weight-value-input').value = '';
-            document.getElementById('weight-date-input').value = getFormattedToday();
-            save();
-        }
+        function setMacros() {
+            db.nutrition.goals.cal = parseInt(prompt("Daily Calories:", db.nutrition.goals.cal)) || 2500;
+            db.nutrition.goals.p = parseInt(prompt("Protein Goal (g):", db.nutrition.goals.p)) || 150;
+            db.nutrition.goals.f = parseInt(prompt("Fats Goal (g):", db.nutrition.goals.f)) || 70;
+            db.nutrition.goals.c = parseInt(prompt("Carbs Goal (g):", db.nutrition.goals.c)) || 250;
+            save();
+        }
 
-        function removeWeightEntry(id) {
-            db.weightHistory = db.weightHistory.filter(w => w.id !== id);
-            save();
-        }
+        function addCustomFoodToLibrary(existingFood = null, index = -1) {
+            const name = prompt("Food Name:", existingFood ? existingFood.name : ""); if(!name) return;
+            const unit = prompt("Serving Unit:", existingFood ? existingFood.unit : "1 portion");
+            const cal = parseInt(prompt("Calories:", existingFood ? existingFood.cal : 0)) || 0;
+            const p = parseInt(prompt("Protein:", existingFood ? existingFood.p : 0)) || 0;
+            const f = parseInt(prompt("Fats:", existingFood ? existingFood.f : 0)) || 0;
+            const c = parseInt(prompt("Carbs:", existingFood ? existingFood.c : 0)) || 0;
+            const foodObj = { name, unit, cal, p, f, c };
+            if(index > -1) db.customFoods[index] = foodObj; else db.customFoods.push(foodObj);
+            save();
+        }
 
-        // --- NUTRITION LOGIC ---
-        function logDayToHistory() {
-            if(db.nutrition.consumed.cal === 0) { alert("Nothing to log yet!"); return; }
-            if(!confirm("Ready to save today's totals to history and reset?")) return;
-            const dateStr = new Date().toLocaleDateString();
-            db.nutrition.history.unshift({date: dateStr, cal: db.nutrition.consumed.cal, p: db.nutrition.consumed.p, f: db.nutrition.consumed.f, c: db.nutrition.consumed.c});
-            db.nutrition.history = db.nutrition.history.slice(0, 3);
-            db.nutrition.consumed = { cal: 0, p: 0, f: 0, c: 0 };
-            db.nutrition.dailyLog = [];
-            save();
-            alert("Day logged and cleared!");
-        }
+        function deleteFromLibrary(index) {
+            if(confirm("Delete from library?")) { db.customFoods.splice(index, 1); save(); document.getElementById('food-input').value = ''; }
+        }
 
-        function setMacros() {
-            db.nutrition.goals.cal = parseInt(prompt("Daily Calories:", db.nutrition.goals.cal)) || 2500;
-            db.nutrition.goals.p = parseInt(prompt("Protein Goal (g):", db.nutrition.goals.p)) || 150;
-            db.nutrition.goals.f = parseInt(prompt("Fats Goal (g):", db.nutrition.goals.f)) || 70;
-            db.nutrition.goals.c = parseInt(prompt("Carbs Goal (g):", db.nutrition.goals.c)) || 250;
-            save();
-        }
+        function logFood(food, multiplier) {
+            const entry = { id: Date.now(), name: food.name, unit: food.unit, base: { cal: food.cal, p: food.p, f: food.f, c: food.c }, qty: multiplier, cal: Math.round(food.cal * multiplier), p: Math.round(food.p * multiplier), f: Math.round(food.f * multiplier), c: Math.round(food.c * multiplier) };
+            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p; db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
+            db.nutrition.dailyLog.push(entry); save();
+        }
 
-        function addCustomFoodToLibrary(existingFood = null, index = -1) {
-            const name = prompt("Food Name:", existingFood ? existingFood.name : ""); if(!name) return;
-            const unit = prompt("Serving Unit:", existingFood ? existingFood.unit : "1 portion");
-            const cal = parseInt(prompt("Calories:", existingFood ? existingFood.cal : 0)) || 0;
-            const p = parseInt(prompt("Protein:", existingFood ? existingFood.p : 0)) || 0;
-            const f = parseInt(prompt("Fats:", existingFood ? existingFood.f : 0)) || 0;
-            const c = parseInt(prompt("Carbs:", existingFood ? existingFood.c : 0)) || 0;
-            const foodObj = { name, unit, cal, p, f, c };
-            if(index > -1) db.customFoods[index] = foodObj; else db.customFoods.push(foodObj);
-            save();
-        }
+        function editLoggedFood(id) {
+            const entry = db.nutrition.dailyLog.find(e => e.id === id); if(!entry) return;
+            const newQty = parseFloat(prompt(`New quantity for ${entry.name}:`, entry.qty)); if(!newQty || isNaN(newQty)) return;
+            db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p; db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c;
+            entry.qty = newQty; entry.cal = Math.round(entry.base.cal * newQty); entry.p = Math.round(entry.base.p * newQty); entry.f = Math.round(entry.base.f * newQty); entry.c = Math.round(entry.base.c * newQty);
+            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p; db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
+            save();
+        }
 
-        function deleteFromLibrary(index) {
-            if(confirm("Delete from library?")) { db.customFoods.splice(index, 1); save(); document.getElementById('food-input').value = ''; }
-        }
+        function removeFood(id) {
+            const entry = db.nutrition.dailyLog.find(e => e.id === id);
+            if(entry) { db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p; db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c; db.nutrition.dailyLog = db.nutrition.dailyLog.filter(e => e.id !== id); save(); }
+        }
 
-        function logFood(food, multiplier) {
-            const entry = { id: Date.now(), name: food.name, unit: food.unit, base: { cal: food.cal, p: food.p, f: food.f, c: food.c }, qty: multiplier, cal: Math.round(food.cal  multiplier), p: Math.round(food.p  multiplier), f: Math.round(food.f  multiplier), c: Math.round(food.c  multiplier) };
-            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p; db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
-            db.nutrition.dailyLog.push(entry); save();
-        }
+        // --- WORKOUT LOGIC ---
+        function createWorkout() {
+            const n = prompt("Workout Name:"); if(n) { db.routines.push({ id: Date.now(), name: n, collapsed: false, exercises: [] }); save(); }
+        }
 
-        function editLoggedFood(id) {
-            const entry = db.nutrition.dailyLog.find(e => e.id === id); if(!entry) return;
-            const newQty = parseFloat(prompt(`New quantity for ${entry.name}:`, entry.qty)); if(!newQty || isNaN(newQty)) return;
-            db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p; db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c;
-            entry.qty = newQty; entry.cal = Math.round(entry.base.cal  newQty); entry.p = Math.round(entry.base.p  newQty); entry.f = Math.round(entry.base.f  newQty); entry.c = Math.round(entry.base.c  newQty);
-            db.nutrition.consumed.cal += entry.cal; db.nutrition.consumed.p += entry.p; db.nutrition.consumed.f += entry.f; db.nutrition.consumed.c += entry.c;
-            save();
-        }
+        function toggleCollapse(id) {
+            const r = db.routines.find(x => x.id === id); if(r) { r.collapsed = !r.collapsed; save(); }
+        }
 
-        function removeFood(id) {
-            const entry = db.nutrition.dailyLog.find(e => e.id === id);
-            if(entry) { db.nutrition.consumed.cal -= entry.cal; db.nutrition.consumed.p -= entry.p; db.nutrition.consumed.f -= entry.f; db.nutrition.consumed.c -= entry.c; db.nutrition.dailyLog = db.nutrition.dailyLog.filter(e => e.id !== id); save(); }
-        }
+        function toggleSets(rId, exIndex) {
+            const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
+            if(ex) { ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save(); }
+        }
 
-        // --- WORKOUT LOGIC ---
-        function createWorkout() {
-            const n = prompt("Workout Name:"); if(n) { db.routines.push({ id: Date.now(), name: n, collapsed: false, exercises: [] }); save(); }
-        }
+        function renderWorkouts() {
+            const container = document.getElementById('workout-container'); if(!container) return;
+            container.innerHTML = db.routines.map(r => `
+                <div class="card ${r.collapsed ? 'collapsed' : ''}">
+                    <div class="workout-header" onclick="toggleCollapse(${r.id})">
+                        <h2 style="margin:0">${r.name}</h2>
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <span class="collapse-icon">▼</span>
+                            <span onclick="event.stopPropagation(); if(confirm('Permanently delete the entire ${r.name} category?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">✕</span>
+                        </div>
+                    </div>
+                    <div class="workout-content">
+                        ${r.exercises.map((ex, i) => `
+                            <div style="margin-bottom:15px; border-bottom:1px solid #2a2a2a; padding-bottom:10px;">
+                                <div style="display:flex; justify-content:space-between"><strong>${ex.name}</strong> <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="opacity:0.3">✕</span></div>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:5px;">
+                                    <input type="text" placeholder="wt" value="${ex.weight || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
+                                    <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
+                                    <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id}, ${i})">${ex.setsDone}/${ex.targetSets}</button>
+                                </div>
+                                <div style="margin-top: 5px;">
+                                    <input type="text" placeholder="notes" maxlength="140" value="${ex.notes || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()" style="font-size: 12px; padding: 6px 10px; color: #bbb; height: auto;">
+                                </div>
+                            </div>
+                        `).join('')}
+                        <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary); font-size:12px;" onclick="event.stopPropagation(); openExMenu(${r.id})">+ Add Exercise</button>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-        function toggleCollapse(id) {
-            const r = db.routines.find(x => x.id === id); if(r) { r.collapsed = !r.collapsed; save(); }
-        }
+        function openExMenu(rId) {
+            const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
+            let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
+            
+            html += `<button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>`;
+            
+            db.library.sort().forEach(ex => { 
+                html += `<div class="list-item" onclick="addExerciseToRoutine(${rId}, '${ex.replace(/'/g, "\\'")}');"><span>${ex}</span><span>+</span></div>`; 
+            });
+            html += `<button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
+            overlay.innerHTML = html;
+        }
 
-        function toggleSets(rId, exIndex) {
-            const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
-            if(ex) { ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save(); }
-        }
+        function createCustomExercise(rId) {
+            const n = prompt("Exercise Name:");
+            if(n) {
+                if(!db.library.includes(n)) {
+                    db.library.push(n);
+                }
+                addExerciseToRoutine(rId, n);
+            }
+        }
 
-        function renderWorkouts() {
-            const container = document.getElementById('workout-container'); if(!container) return;
-            container.innerHTML = db.routines.map(r => `
-                <div class="card ${r.collapsed ? 'collapsed' : ''}">
-                    <div class="workout-header" onclick="toggleCollapse(${r.id})">
-                        <h2 style="margin:0">${r.name}</h2>
-                        <div style="display:flex; align-items:center; gap:15px;">
-                            <span class="collapse-icon">▼</span>
-                            <span onclick="event.stopPropagation(); if(confirm('Permanently delete the entire ${r.name} category?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">✕</span>
-                        </div>
-                    </div>
-                    <div class="workout-content">
-                        ${r.exercises.map((ex, i) => `
-                            <div style="margin-bottom:15px; border-bottom:1px solid #2a2a2a; padding-bottom:10px;">
-                                <div style="display:flex; justify-content:space-between"><strong>${ex.name}</strong> <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="opacity:0.3">✕</span></div>
-                                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:5px;">
-                                    <input type="text" placeholder="wt" value="${ex.weight || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
-                                    <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
-                                    <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id}, ${i})">${ex.setsDone}/${ex.targetSets}</button>
-                                </div>
-                                <div style="margin-top: 5px;">
-                                    <input type="text" placeholder="notes" maxlength="140" value="${ex.notes || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()" style="font-size: 12px; padding: 6px 10px; color: #bbb; height: auto;">
-                                </div>
-                            </div>
-                        `).join('')}
-                        <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary); font-size:12px;" onclick="event.stopPropagation(); openExMenu(${r.id})">+ Add Exercise</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        function addExerciseToRoutine(rId, name) {
+            const routine = db.routines.find(r => r.id === rId);
+            if (routine) {
+                routine.exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
+                document.getElementById('selection-overlay').style.display = 'none';
+                save();
+            }
+        }
 
-        function openExMenu(rId) {
-            const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
-            let html = <h2 style="color:var(--primary)">Select Exercise</h2>;
-            
-            html += <button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>;
-            
-            db.library.sort().forEach(ex => { 
-                html += <div class="list-item" onclick="addExerciseToRoutine(${rId}, '${ex.replace(/'/g, "\\'")}');"><span>${ex}</span><span>+</span></div>; 
-            });
-            html += <button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>;
-            overlay.innerHTML = html;
-        }
+        function updateUI() {
+            const n = db.nutrition;
+            const updateBar = (id, cur, goal) => {
+                const fill = document.getElementById(id + '-fill'); const text = document.getElementById(id + '-text');
+                if(fill) fill.style.width = Math.min((cur/(goal||1))*100, 100) + '%'; 
+                if(text) text.innerText = `${cur} / ${goal}`;
+            };
+            updateBar('cal', n.consumed.cal, n.goals.cal); 
+            updateBar('p', n.consumed.p, n.goals.p); 
+            updateBar('f', n.consumed.f, n.goals.f); 
+            updateBar('c', n.consumed.c, n.goals.c);
+            
+            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => `<div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>`).join('') || '<p style="color:#666">No food logged yet.</p>';
+            document.getElementById('history-container').innerHTML = n.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>`).join('');
+            
+            document.getElementById('weight-history-container').innerHTML = db.weightHistory.map(w => `
+                <div class="list-item" style="padding:8px 0;">
+                    <span><strong>${w.date}</strong> — ${w.weight}</span>
+                    <span class="action-icon" onclick="removeWeightEntry(${w.id})" style="color:var(--error); font-weight:bold;">✕</span>
+                </div>
+            `).join('') || '<p style="color:#666; font-size:12px;">No weight entries yet.</p>';
 
-        function createCustomExercise(rId) {
-            const n = prompt("Exercise Name:");
-            if(n) {
-                if(!db.library.includes(n)) {
-                    db.library.push(n);
-                }
-                addExerciseToRoutine(rId, n);
-            }
-        }
+            renderWorkouts();
+        }
 
-        function addExerciseToRoutine(rId, name) {
-            const routine = db.routines.find(r => r.id === rId);
-            if (routine) {
-                routine.exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
-                document.getElementById('selection-overlay').style.display = 'none';
-                save();
-            }
-        }
+        document.getElementById('food-input').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
+            const resultsDiv = document.getElementById('food-results'); resultsDiv.innerHTML = '';
+            db.customFoods.forEach((f, idx) => { if(f.name.toLowerCase().includes(q)) { const row = document.createElement('div'); row.className = 'list-item'; row.innerHTML = `<div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span></div><div style="display:flex; gap:10px;"><span onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span><span onclick="deleteFromLibrary(${idx})">🗑</span></div>`; resultsDiv.appendChild(row); } });
+        });
 
-        function updateUI() {
-            const n = db.nutrition;
-            const updateBar = (id, cur, goal) => {
-                const fill = document.getElementById(id + '-fill'); const text = document.getElementById(id + '-text');
-                if(fill) fill.style.width = Math.min((cur/(goal||1))*100, 100) + '%'; 
-                if(text) text.innerText = ${cur} / ${goal};
-            };
-            updateBar('cal', n.consumed.cal, n.goals.cal); 
-            updateBar('p', n.consumed.p, n.goals.p); 
-            updateBar('f', n.consumed.f, n.goals.f); 
-            updateBar('c', n.consumed.c, n.goals.c);
-            
-            document.getElementById('daily-log-list').innerHTML = n.dailyLog.map(e => <div class="list-item" style="padding:8px 0;"><span>${e.name} <small style="color:#888">(${e.cal}c)</small></span><div><span class="action-icon" onclick="editLoggedFood(${e.id})">✎</span><span class="action-icon" onclick="removeFood(${e.id})" style="color:var(--error); font-weight:bold; margin-left:10px;">✕</span></div></div>).join('') || '<p style="color:#666">No food logged yet.</p>';
-            document.getElementById('history-container').innerHTML = n.history.map(h => <div style="font-size:12px; border-bottom:1px solid #333; padding:5px 0;"><strong>${h.date}</strong>: ${h.cal}cal | P:${h.p} F:${h.f} C:${h.c}</div>).join('');
-            
-            document.getElementById('weight-history-container').innerHTML = db.weightHistory.map(w => `
-                <div class="list-item" style="padding:8px 0;">
-                    <span><strong>${w.date}</strong> — ${w.weight}</span>
-                    <span class="action-icon" onclick="removeWeightEntry(${w.id})" style="color:var(--error); font-weight:bold;">✕</span>
-                </div>
-            `).join('') || '<p style="color:#666; font-size:12px;">No weight entries yet.</p>';
+        function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
+        
+        function exportToFile() { 
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" }); 
+            const link = document.createElement("a"); 
+            link.href = URL.createObjectURL(blob); 
+            link.download = "FlexJournal_Backup.json"; 
+            link.click(); 
+        }
 
-            renderWorkouts();
-        }
+        function importFromFile(input) { 
+            const file = input.files && input.files[0];
+            if (!file) return;
 
-        document.getElementById('food-input').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
-            const resultsDiv = document.getElementById('food-results'); resultsDiv.innerHTML = '';
-            db.customFoods.forEach((f, idx) => { if(f.name.toLowerCase().includes(q)) { const row = document.createElement('div'); row.className = 'list-item'; row.innerHTML = <div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span></div><div style="display:flex; gap:10px;"><span onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span><span onclick="deleteFromLibrary(${idx})">🗑</span></div>; resultsDiv.appendChild(row); } });
-        });
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    db = sanitizeDB(parsed);
+                    save(); 
+                    alert("Import successful!");
+                } catch(err) {
+                    alert("Failed to import. Error: " + err.message);
+                } finally {
+                    input.value = '';
+                }
+            }; 
+            reader.onerror = () => {
+                alert("Could not read file.");
+                input.value = '';
+            };
+            reader.readAsText(file); 
+        }
 
-        function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
-        
-        function exportToFile() { 
-            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" }); 
-            const link = document.createElement("a"); 
-            link.href = URL.createObjectURL(blob); 
-            link.download = "FlexJournal_Backup.json"; 
-            link.click(); 
-        }
-
-        function importFromFile(input) { 
-            const file = input.files && input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader(); 
-            reader.onload = (e) => { 
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    db = sanitizeDB(parsed);
-                    save(); 
-                    alert("Import successful!");
-                    location.reload();
-                } catch(err) {
-                    alert("Failed to import. Error: " + err.message);
-                } finally {
-                    input.value = '';
-                }
-            }; 
-            reader.onerror = () => {
-                alert("Could not read file.");
-                input.value = '';
-            };
-            reader.readAsText(file); 
-        }
-
-        function importFromPastedText() {
-            const rawText = document.getElementById('paste-json-input').value.trim();
-            if (!rawText) {
-                alert("Please paste your JSON text into the box first.");
-                return;
-            }
-            try {
-                const parsed = JSON.parse(rawText);
-                db = sanitizeDB(parsed);
-                save();
-                alert("Data restored successfully!");
-                location.reload();
-            } catch(err) {
-                alert("Failed to parse pasted text. Please make sure you copied the entire JSON block. Error: " + err.message);
-            }
-        }
-
-        init();
-    </script>
+        init();
+    </script>
 </body>
 </html>
