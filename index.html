@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlexJournal</title>
+    <title>FlexJournal Pro</title>
     <link rel="apple-touch-icon" href="icon.png.PNG">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,7 +25,7 @@
         .macro-box { text-align: center; font-size: 11px; background: #2a2a2a; padding: 8px; border-radius: 6px; }
         .progress-bar { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin: 5px 0; }
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
-        input, select { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; }
+        input, select, textarea { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; }
         button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
         .set-btn { background: #444; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; height: 40px; }
         .set-btn.complete { background: var(--secondary); color: black; }
@@ -110,6 +110,13 @@
                 Import Backup (.JSON)
                 <input type="file" id="json-file-input" style="display:none;" onchange="importFromFile(this)">
             </label>
+
+            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+
+            <h3 style="margin-top:0;">Paste Data Restore</h3>
+            <textarea id="paste-json-input" placeholder="Paste JSON data here..." style="height:90px; font-family:monospace; font-size:11px;"></textarea>
+            <button class="main-btn" style="background:var(--secondary); color:black; margin-top:10px;" onclick="importFromPastedText()">Restore from Pasted Text</button>
+
             <button class="main-btn" style="background:var(--error); margin-top: 40px; font-size:10px;" onclick="if(confirm('Wipe EVERYTHING? Ensure you have a backup.')){localStorage.clear();location.reload();}">Hard Reset App</button>
         </div>
     </div>
@@ -384,6 +391,7 @@
                     db = sanitizeDB(parsed);
                     save(); 
                     alert("Import successful!");
+                    location.reload();
                 } catch(err) {
                     alert("Failed to import. Error: " + err.message);
                 } finally {
@@ -395,6 +403,23 @@
                 input.value = '';
             };
             reader.readAsText(file); 
+        }
+
+        function importFromPastedText() {
+            const rawText = document.getElementById('paste-json-input').value.trim();
+            if (!rawText) {
+                alert("Please paste your JSON text into the box first.");
+                return;
+            }
+            try {
+                const parsed = JSON.parse(rawText);
+                db = sanitizeDB(parsed);
+                save();
+                alert("Data restored successfully!");
+                location.reload();
+            } catch(err) {
+                alert("Failed to parse pasted text. Please make sure you copied the entire JSON block. Error: " + err.message);
+            }
         }
 
         init();
