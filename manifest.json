@@ -1,0 +1,13 @@
+{
+  "name": "FlexJournal Pro",
+  "short_name": "FlexJournal",
+  "start_url": "./",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icon.png.PNG",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
