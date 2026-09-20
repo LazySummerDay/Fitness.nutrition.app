@@ -338,10 +338,25 @@
             html += `<button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>`;
             
             db.library.sort().forEach(ex => { 
-                html += `<div class="list-item" onclick="addExerciseToRoutine(${rId}, '${ex.replace(/'/g, "\\'")}');"><span>${ex}</span><span>+</span></div>`; 
+                html += `
+                    <div class="list-item">
+                        <span onclick="addExerciseToRoutine(${rId}, '${ex.replace(/'/g, "\\'")}');" style="flex:1; cursor:pointer;">${ex}</span>
+                        <div style="display:flex; gap:15px; align-items:center;">
+                            <span onclick="addExerciseToRoutine(${rId}, '${ex.replace(/'/g, "\\'")}');" style="cursor:pointer; color:var(--secondary); font-weight:bold;">+ Add</span>
+                            <span onclick="deleteExerciseFromLibrary('${ex.replace(/'/g, "\\'")}', ${rId})" style="cursor:pointer; color:var(--error); font-size:16px;">🗑</span>
+                        </div>
+                    </div>`; 
             });
             html += `<button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
             overlay.innerHTML = html;
+        }
+
+        function deleteExerciseFromLibrary(exName, rId) {
+            if(confirm(`Delete "${exName}" from the exercise library?`)) {
+                db.library = db.library.filter(e => e !== exName);
+                save();
+                openExMenu(rId); // Refresh the menu overlay
+            }
         }
 
         function createCustomExercise(rId) {
