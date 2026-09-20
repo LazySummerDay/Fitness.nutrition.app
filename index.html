@@ -277,6 +277,23 @@
             if(ex) { ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save(); }
         }
 
+        function editExercise(rId, exIndex) {
+            const routine = db.routines.find(r => r.id === rId);
+            if (!routine || !routine.exercises[exIndex]) return;
+            const ex = routine.exercises[exIndex];
+            
+            const newName = prompt("Edit Exercise Name:", ex.name);
+            if (!newName) return;
+            const newTarget = parseInt(prompt("Edit Target Sets:", ex.targetSets));
+            
+            ex.name = newName;
+            if (!isNaN(newTarget) && newTarget > 0) {
+                ex.targetSets = newTarget;
+                if (ex.setsDone > ex.targetSets) ex.setsDone = ex.targetSets;
+            }
+            save();
+        }
+
         function renderWorkouts() {
             const container = document.getElementById('workout-container'); if(!container) return;
             container.innerHTML = db.routines.map(r => `
@@ -291,11 +308,17 @@
                     <div class="workout-content">
                         ${r.exercises.map((ex, i) => `
                             <div style="margin-bottom:15px; border-bottom:1px solid #2a2a2a; padding-bottom:10px;">
-                                <div style="display:flex; justify-content:space-between"><strong>${ex.name}</strong> <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="opacity:0.3">✕</span></div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <strong>${ex.name}</strong> 
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                        <span class="action-icon" onclick="editExercise(${r.id},${i})">✎</span>
+                                        <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="color:var(--error); opacity:0.6; cursor:pointer; font-weight:bold;">✕</span>
+                                    </div>
+                                </div>
                                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:5px;">
                                     <input type="text" placeholder="wt" value="${ex.weight || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
                                     <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
-                                    <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id}, ${i})">${ex.setsDone}/${ex.targetSets}</button>
+                                    <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id},${i})">${ex.setsDone}/${ex.targetSets}</button>
                                 </div>
                                 <div style="margin-top: 5px;">
                                     <input type="text" placeholder="notes" maxlength="140" value="${ex.notes || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()" style="font-size: 12px; padding: 6px 10px; color: #bbb; height: auto;">
