@@ -9,15 +9,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        :root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679; }
+        :root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #bb86fc; --secondary: #03dac6; --error: #cf6679; --border: #2a2a2a; }
         body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px;}
         .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 10px 0; }
         .tab { flex: 1; padding: 12px; text-align: center; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; border: 1px solid transparent; }
         .tab.active { border-color: var(--primary); font-weight: bold; color: var(--primary); }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; border: 1px solid var(--border); }
         
         .workout-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .workout-content { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        .workout-content { margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px; }
         .collapsed .workout-content { display: none; }
         .collapse-icon { transition: transform 0.2s; font-size: 12px; color: var(--primary); }
         .collapsed .collapse-icon { transform: rotate(-90deg); }
@@ -26,11 +26,12 @@
         .macro-box { text-align: center; font-size: 11px; background: #2a2a2a; padding: 8px; border-radius: 6px; }
         .progress-bar { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin: 5px 0; }
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
-        input, select, textarea { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; }
-        button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; }
-        .set-btn { background: #444; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; height: 40px; }
-        .set-btn.complete { background: var(--secondary); color: black; }
-        .list-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        input, select, textarea { background: #2c2c2c; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; outline: none; }
+        input:focus, select:focus { border-color: var(--primary); }
+        button.main-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; color: black; cursor: pointer; }
+        .set-btn { background: #333; border: 1px solid #444; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; height: 38px; cursor: pointer; }
+        .set-btn.complete { background: var(--secondary); color: black; border-color: var(--secondary); }
+        .list-item { padding: 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none; }
         #selection-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; padding:20px; box-sizing:border-box; overflow-y:auto; display:none; }
         .action-icon { cursor: pointer; padding: 5px; opacity: 0.7; font-size: 14px; }
@@ -56,7 +57,7 @@
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2 style="margin:0">Nutrition</h2>
-                <button onclick="setMacros()" style="background:none; border:1px solid var(--primary); color:var(--primary); padding:4px 8px; border-radius:4px; font-size:11px;">Set Goals</button>
+                <button onclick="setMacros()" style="background:none; border:1px solid var(--primary); color:var(--primary); padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Set Goals</button>
             </div>
             <div style="margin-top:15px;">
                 <div style="display:flex; justify-content:space-between"><span>Calories</span><span id="cal-text">0 / 2500</span></div>
@@ -112,7 +113,7 @@
                 <input type="file" id="json-file-input" style="display:none;" onchange="importFromFile(this)">
             </label>
 
-            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+            <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
 
             <h3 style="margin-top:0;">Paste Data Restore</h3>
             <textarea id="paste-json-input" placeholder="Paste JSON data here..." style="height:90px; font-family:monospace; font-size:11px;"></textarea>
@@ -123,7 +124,7 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'FlexJournal_PRO_V3';
+        const STORAGE_KEY = 'FlexJournal_PRO_V4';
         let db;
 
         const masterExercises = ["Back Extension", "Bulgarian Split Squat", "Cable Lateral Raise", "Cable Oblique", "Dips", "Hanging Leg Raise", "Hip Abduction", "Hip Adduction", "Hip Thrusts", "ISO Bench Press", "ISO Lateral Incline", "ISO Lateral Row", "ISO Shoulder Press", "Kettlebell Obliques", "OL Leg Press", "OL RDL", "Rear Delt Fly", "Seated Facepull", "Wood chopper"];
@@ -153,14 +154,27 @@
                 id: r.id || Date.now(),
                 name: r.name || 'Workout',
                 collapsed: Boolean(r.collapsed),
-                exercises: Array.isArray(r.exercises) ? r.exercises.map(e => ({
-                    name: e.name || 'Exercise',
-                    setsDone: parseInt(e.setsDone) || 0,
-                    targetSets: parseInt(e.targetSets) || 3,
-                    weight: e.weight || '',
-                    reps: e.reps || '',
-                    notes: e.notes || ''
-                })) : []
+                exercises: Array.isArray(r.exercises) ? r.exercises.map(e => {
+                    let sets = Array.isArray(e.sets) ? e.sets : null;
+                    if (!sets) {
+                        const count = parseInt(e.targetSets) || 3;
+                        sets = [];
+                        for(let i=0; i<count; i++) {
+                            sets.push({ target: e.reps || '', actual: '', done: false });
+                        }
+                    }
+                    return {
+                        name: e.name || 'Exercise',
+                        weight: e.weight || '',
+                        unit: e.unit || 'reps',
+                        notes: e.notes || '',
+                        sets: sets.map(s => ({
+                            target: s.target !== undefined ? s.target : '',
+                            actual: s.actual !== undefined ? s.actual : '',
+                            done: Boolean(s.done)
+                        }))
+                    };
+                }) : []
             })) : [];
 
             clean.library = Array.from(new Set([...masterExercises, ...(Array.isArray(rawDB.library) ? rawDB.library : [])]));
@@ -272,27 +286,136 @@
             const r = db.routines.find(x => x.id === id); if(r) { r.collapsed = !r.collapsed; save(); }
         }
 
-        function toggleSets(rId, exIndex) {
+        function toggleSetComplete(rId, exIndex, setIndex) {
             const ex = db.routines.find(r => r.id === rId).exercises[exIndex];
-            if(ex) { ex.setsDone = (ex.setsDone + 1) > ex.targetSets ? 0 : ex.setsDone + 1; save(); }
+            if(ex && ex.sets[setIndex]) {
+                ex.sets[setIndex].done = !ex.sets[setIndex].done;
+                save();
+            }
         }
 
         function editExercise(rId, exIndex) {
             const routine = db.routines.find(r => r.id === rId);
             if (!routine || !routine.exercises[exIndex]) return;
             const ex = routine.exercises[exIndex];
-            
-            const newName = prompt("Edit Exercise Name:", ex.name);
-            if (!newName) return;
-            const newTarget = parseInt(prompt("Edit Target Sets:", ex.targetSets));
-            
-            ex.name = newName;
-            if (!isNaN(newTarget) && newTarget > 0) {
-                ex.targetSets = newTarget;
-                if (ex.setsDone > ex.targetSets) ex.setsDone = ex.targetSets;
-            }
-            save();
+
+            const overlay = document.getElementById('selection-overlay');
+            overlay.style.display = 'block';
+
+            let setsHtml = '';
+            ex.sets.forEach((set, sIdx) => {
+                setsHtml += `
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; background: #252525; padding: 8px; border-radius: 6px;">
+                        <span style="font-size: 12px; font-weight: bold; width: 45px; color: var(--primary);">Set ${sIdx + 1}</span>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10px; color: #888; display: block;">Target</label>
+                            <input type="text" id="edit-set-target-${sIdx}" value="${set.target || ''}" style="padding: 6px; font-size: 13px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10px; color: #888; display: block;">Actual</label>
+                            <input type="text" id="edit-set-actual-${sIdx}" value="${set.actual || ''}" style="padding: 6px; font-size: 13px;">
+                        </div>
+                        <button type="button" onclick="removeSetFromEdit(${rId}, ${exIndex}, ${sIdx})" style="background:none; border:none; color:var(--error); font-size:16px; cursor:pointer; padding: 4px 8px; margin-top: 14px;">✕</button>
+                    </div>
+                `;
+            });
+
+            overlay.innerHTML = `
+                <div style="max-width: 420px; margin: 40px auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <h2 style="margin-top:0; color:var(--primary); font-size: 18px;">Edit Exercise</h2>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 12px; color: #888; display: block; margin-bottom: 4px;">Exercise Name</label>
+                        <input type="text" id="modal-ex-name" value="${ex.name}">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label style="font-size: 12px; color: #888; display: block; margin-bottom: 4px;">Weight</label>
+                            <input type="text" id="modal-ex-wt" value="${ex.weight || ''}">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #888; display: block; margin-bottom: 4px;">Unit Type</label>
+                            <select id="modal-ex-unit">
+                                <option value="reps" ${ex.unit === 'reps' ? 'selected' : ''}>Reps</option>
+                                <option value="sec" ${ex.unit === 'sec' ? 'selected' : ''}>Seconds</option>
+                                <option value="min" ${ex.unit === 'min' ? 'selected' : ''}>Minutes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 12px; color: #888; display: block; margin-bottom: 4px;">Notes</label>
+                        <input type="text" id="modal-ex-notes" value="${ex.notes || ''}">
+                    </div>
+
+                    <hr style="border:0; border-top:1px solid var(--border); margin: 15px 0;">
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: bold; font-size: 13px;">Sets Management</span>
+                        <button class="main-btn" style="width: auto; margin:0; padding: 6px 12px; font-size: 12px; background: var(--secondary); color: black;" onclick="addSetToEdit(${rId}, ${exIndex})">+ Add Set</button>
+                    </div>
+
+                    <div id="modal-sets-container" style="max-height: 220px; overflow-y: auto; margin-bottom: 15px; padding-right: 4px;">
+                        ${setsHtml}
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="main-btn" style="background: #333; color: white;" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>
+                        <button class="main-btn" style="background: var(--secondary); color: black;" onclick="saveExerciseEdit(${rId}, ${exIndex})">Save Changes</button>
+                    </div>
+                </div>
+            `;
         }
+
+        window.addSetToEdit = function(rId, exIndex) {
+            const routine = db.routines.find(r => r.id === rId);
+            if(!routine) return;
+            const ex = routine.exercises[exIndex];
+            
+            // Capture current inputs in modal first
+            collectModalInputsIntoExercise(ex);
+            
+            // Add a new blank set
+            const lastSet = ex.sets[ex.sets.length - 1];
+            ex.sets.push({ target: lastSet ? lastSet.target : '', actual: '', done: false });
+            editExercise(rId, exIndex); // Re-render modal
+        };
+
+        window.removeSetFromEdit = function(rId, exIndex, sIdx) {
+            const routine = db.routines.find(r => r.id === rId);
+            if(!routine) return;
+            const ex = routine.exercises[exIndex];
+            
+            collectModalInputsIntoExercise(ex);
+            if(ex.sets.length <= 1) { alert("An exercise must have at least one set."); return; }
+            ex.sets.splice(sIdx, 1);
+            editExercise(rId, exIndex);
+        };
+
+        function collectModalInputsIntoExercise(ex) {
+            ex.name = document.getElementById('modal-ex-name').value;
+            ex.weight = document.getElementById('modal-ex-wt').value;
+            ex.unit = document.getElementById('modal-ex-unit').value;
+            ex.notes = document.getElementById('modal-ex-notes').value;
+
+            ex.sets.forEach((set, sIdx) => {
+                const targetInput = document.getElementById(`edit-set-target-${sIdx}`);
+                const actualInput = document.getElementById(`edit-set-actual-${sIdx}`);
+                if (targetInput) set.target = targetInput.value;
+                if (actualInput) set.actual = actualInput.value;
+            });
+        }
+
+        window.saveExerciseEdit = function(rId, exIndex) {
+            const routine = db.routines.find(r => r.id === rId);
+            if(!routine) return;
+            const ex = routine.exercises[exIndex];
+
+            collectModalInputsIntoExercise(ex);
+            document.getElementById('selection-overlay').style.display = 'none';
+            save();
+        };
 
         function renderWorkouts() {
             const container = document.getElementById('workout-container'); if(!container) return;
@@ -307,22 +430,33 @@
                     </div>
                     <div class="workout-content">
                         ${r.exercises.map((ex, i) => `
-                            <div style="margin-bottom:15px; border-bottom:1px solid #2a2a2a; padding-bottom:10px;">
+                            <div style="margin-bottom:15px; border-bottom:1px solid #2a2a2a; padding-bottom:12px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong>${ex.name}</strong> 
+                                    <div>
+                                        <strong style="font-size: 15px;">${ex.name}</strong>${ex.weight ? `<span style="font-size: 12px; color: var(--secondary); margin-left: 8px;">(${ex.weight})</span>` : ''}
+                                    </div>
                                     <div style="display:flex; gap:10px; align-items:center;">
                                         <span class="action-icon" onclick="editExercise(${r.id},${i})">✎</span>
                                         <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="color:var(--error); opacity:0.6; cursor:pointer; font-weight:bold;">✕</span>
                                     </div>
                                 </div>
-                                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:5px;">
-                                    <input type="text" placeholder="wt" value="${ex.weight || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].weight=this.value;save()">
-                                    <input type="number" placeholder="reps" value="${ex.reps || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].reps=this.value;save()">
-                                    <button class="set-btn ${ex.setsDone === ex.targetSets ? 'complete' : ''}" onclick="toggleSets(${r.id},${i})">${ex.setsDone}/${ex.targetSets}</button>
+
+                                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    ${ex.sets.map((set, sIdx) => `
+                                        <div style="display: flex; align-items: center; justify-content: space-between; background: #252525; padding: 6px 10px; border-radius: 6px;">
+                                            <span style="font-size: 12px; font-weight: bold; color: #aaa; width: 45px;">Set ${sIdx + 1}</span>
+                                            <div style="font-size: 12px; color: #888; flex: 1; text-align: center;">
+                                                Target: <span style="color: #fff; font-weight: 500;">${set.target || '-'}</span> ${ex.unit}
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <input type="text" placeholder="Actual" value="${set.actual || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].sets[${sIdx}].actual=this.value;save()" style="width: 75px; padding: 5px; text-align: center; font-size: 12px; height: 32px;">
+                                                <button class="set-btn ${set.done ? 'complete' : ''}" onclick="toggleSetComplete(${r.id}, ${i}, ${sIdx})" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 14px;">✓</button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
                                 </div>
-                                <div style="margin-top: 5px;">
-                                    <input type="text" placeholder="notes" maxlength="140" value="${ex.notes || ''}" onchange="db.routines.find(x=>x.id==${r.id}).exercises[${i}].notes=this.value;save()" style="font-size: 12px; padding: 6px 10px; color: #bbb; height: auto;">
-                                </div>
+
+                                ${ex.notes ? `<div style="margin-top: 6px; font-size: 11px; color: #888; font-style: italic;">Note: ${ex.notes}</div>` : ''}
                             </div>
                         `).join('')}
                         <button class="main-btn" style="background:transparent; border:1px dashed var(--secondary); color:var(--secondary); font-size:12px;" onclick="event.stopPropagation(); openExMenu(${r.id})">+ Add Exercise</button>
@@ -333,7 +467,8 @@
 
         function openExMenu(rId) {
             const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
-            let html = `<h2 style="color:var(--primary)">Select Exercise</h2>`;
+            let html = `<div style="max-width: 420px; margin: 20px auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">`;
+            html += `<h2 style="color:var(--primary); margin-top:0;">Select Exercise</h2>`;
             
             html += `<button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>`;
             
@@ -347,7 +482,8 @@
                         </div>
                     </div>`; 
             });
-            html += `<button class="main-btn" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
+            html += `<button class="main-btn" style="margin-top: 15px; background: #333; color: white;" onclick="document.getElementById('selection-overlay').style.display='none'">Cancel</button>`;
+            html += `</div>`;
             overlay.innerHTML = html;
         }
 
@@ -355,7 +491,7 @@
             if(confirm(`Delete "${exName}" from the exercise library?`)) {
                 db.library = db.library.filter(e => e !== exName);
                 save();
-                openExMenu(rId); // Refresh the menu overlay
+                openExMenu(rId);
             }
         }
 
@@ -372,7 +508,17 @@
         function addExerciseToRoutine(rId, name) {
             const routine = db.routines.find(r => r.id === rId);
             if (routine) {
-                routine.exercises.push({name: name, setsDone: 0, targetSets: 3, weight: '', reps: '', notes: ''});
+                routine.exercises.push({
+                    name: name,
+                    weight: '',
+                    unit: 'reps',
+                    notes: '',
+                    sets: [
+                        { target: '10', actual: '', done: false },
+                        { target: '10', actual: '', done: false },
+                        { target: '10', actual: '', done: false }
+                    ]
+                });
                 document.getElementById('selection-overlay').style.display = 'none';
                 save();
             }
