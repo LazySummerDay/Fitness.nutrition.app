@@ -77,7 +77,7 @@
         </div>
         <div class="card">
             <input type="text" id="food-input" placeholder="Search Food Library...">
-            <div id="food-results"></div>
+            <div id="food-results" style="max-height: 250px; overflow-y: auto;"></div>
         </div>
         <div class="card">
             <h3 style="margin-top:0">3-Day History</h3>
@@ -243,7 +243,7 @@
 
         function addCustomFoodToLibrary(existingFood = null, index = -1) {
             const name = prompt("Food Name:", existingFood ? existingFood.name : ""); if(!name) return;
-            const unit = prompt("Serving Unit:", existingFood ? existingFood.unit : "1 portion");
+            const unit = prompt("Serving Unit (e.g. 1 cup or 1 piece):", existingFood ? existingFood.unit : "1 cup");
             const cal = parseInt(prompt("Calories:", existingFood ? existingFood.cal : 0)) || 0;
             const p = parseInt(prompt("Protein:", existingFood ? existingFood.p : 0)) || 0;
             const f = parseInt(prompt("Fats:", existingFood ? existingFood.f : 0)) || 0;
@@ -372,21 +372,16 @@
             const routine = db.routines.find(r => r.id === rId);
             if(!routine) return;
             const ex = routine.exercises[exIndex];
-            
-            // Capture current inputs in modal first
             collectModalInputsIntoExercise(ex);
-            
-            // Add a new blank set
             const lastSet = ex.sets[ex.sets.length - 1];
             ex.sets.push({ target: lastSet ? lastSet.target : '', actual: '', done: false });
-            editExercise(rId, exIndex); // Re-render modal
+            editExercise(rId, exIndex);
         };
 
         window.removeSetFromEdit = function(rId, exIndex, sIdx) {
             const routine = db.routines.find(r => r.id === rId);
             if(!routine) return;
             const ex = routine.exercises[exIndex];
-            
             collectModalInputsIntoExercise(ex);
             if(ex.sets.length <= 1) { alert("An exercise must have at least one set."); return; }
             ex.sets.splice(sIdx, 1);
@@ -411,7 +406,6 @@
             const routine = db.routines.find(r => r.id === rId);
             if(!routine) return;
             const ex = routine.exercises[exIndex];
-
             collectModalInputsIntoExercise(ex);
             document.getElementById('selection-overlay').style.display = 'none';
             save();
@@ -469,7 +463,6 @@
             const overlay = document.getElementById('selection-overlay'); overlay.style.display = 'block';
             let html = `<div style="max-width: 420px; margin: 20px auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">`;
             html += `<h2 style="color:var(--primary); margin-top:0;">Select Exercise</h2>`;
-            
             html += `<button class="main-btn" style="margin-bottom:15px; background:var(--secondary); color:black;" onclick="createCustomExercise(${rId})">+ Create Custom Exercise</button>`;
             
             db.library.sort().forEach(ex => { 
@@ -498,9 +491,7 @@
         function createCustomExercise(rId) {
             const n = prompt("Exercise Name:");
             if(n) {
-                if(!db.library.includes(n)) {
-                    db.library.push(n);
-                }
+                if(!db.library.includes(n)) { db.library.push(n); }
                 addExerciseToRoutine(rId, n);
             }
         }
@@ -509,15 +500,8 @@
             const routine = db.routines.find(r => r.id === rId);
             if (routine) {
                 routine.exercises.push({
-                    name: name,
-                    weight: '',
-                    unit: 'reps',
-                    notes: '',
-                    sets: [
-                        { target: '10', actual: '', done: false },
-                        { target: '10', actual: '', done: false },
-                        { target: '10', actual: '', done: false }
-                    ]
+                    name: name, weight: '', unit: 'reps', notes: '',
+                    sets: [{ target: '10', actual: '', done: false }, { target: '10', actual: '', done: false }, { target: '10', actual: '', done: false }]
                 });
                 document.getElementById('selection-overlay').style.display = 'none';
                 save();
@@ -549,10 +533,39 @@
             renderWorkouts();
         }
 
+        // --- OPTIMIZED BLISTERING FAST FOOD SEARCH (GrapheneOS Friendly) ---
         document.getElementById('food-input').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase(); if(!q) { document.getElementById('food-results').innerHTML = ''; return; }
-            const resultsDiv = document.getElementById('food-results'); resultsDiv.innerHTML = '';
-            db.customFoods.forEach((f, idx) => { if(f.name.toLowerCase().includes(q)) { const row = document.createElement('div'); row.className = 'list-item'; row.innerHTML = `<div onclick="const qty=parseFloat(prompt('How many ${f.unit}?','1')); if(qty) logFood(${JSON.stringify(f).replace(/"/g, '&quot;')}, qty)" style="flex:1"><span>${f.name} <br><small style="color:#666">${f.cal}cal per ${f.unit}</small></span></div><div style="display:flex; gap:10px;"><span onclick="addCustomFoodToLibrary(${JSON.stringify(f).replace(/"/g, '&quot;')}, ${idx})">✎</span><span onclick="deleteFromLibrary(${idx})">🗑</span></div>`; resultsDiv.appendChild(row); } });
+            const q = e.target.value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('food-results');
+            if(!q) { resultsDiv.innerHTML = ''; return; }
+            
+            const matches = [];
+            for(let i = 0; i < db.customFoods.length; i++) {
+                const f = db.customFoods[i];
+                if(f.name.toLowerCase().includes(q)) {
+                    matches.push({ f, idx: i });
+                    if(matches.length >= 25) break; // Cap results instantly to prevent mobile UI freeze
+                }
+            }
+
+            let html = '';
+            matches.forEach(item => {
+                const f = item.f;
+                const idx = item.idx;
+                const foodJson = JSON.stringify(f).replace(/"/g, '&quot;');
+                html += `
+                    <div class="list-item">
+                        <div onclick="const qty = parseFloat(prompt('How many ${f.unit}?', '1')); if(qty) logFood(${foodJson}, qty)" style="flex:1; cursor:pointer;">
+                            <span><strong>${f.name}</strong> <br><small style="color:#888">${f.cal}cal per ${f.unit} (P:${f.p} | F:${f.f} | C:${f.c})</small></span>
+                        </div>
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <span class="action-icon" onclick="addCustomFoodToLibrary(${foodJson}, ${idx})">✎</span>
+                            <span class="action-icon" onclick="deleteFromLibrary(${idx})" style="color:var(--error);">🗑</span>
+                        </div>
+                    </div>
+                `;
+            });
+            resultsDiv.innerHTML = html;
         });
 
         function showTab(t) { document.querySelectorAll('.content-tab').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(t + '-tab').classList.remove('hidden'); event.currentTarget.classList.add('active'); }
@@ -568,42 +581,32 @@
         function importFromFile(input) { 
             const file = input.files && input.files[0];
             if (!file) return;
-
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 try {
-                    const parsed = JSON.parse(e.target.result);
-                    db = sanitizeDB(parsed);
+                    db = sanitizeDB(JSON.parse(e.target.result));
                     save(); 
                     alert("Import successful!");
                     location.reload();
                 } catch(err) {
-                    alert("Failed to import. Error: " + err.message);
+                    alert("Failed to import: " + err.message);
                 } finally {
                     input.value = '';
                 }
             }; 
-            reader.onerror = () => {
-                alert("Could not read file.");
-                input.value = '';
-            };
             reader.readAsText(file); 
         }
 
         function importFromPastedText() {
             const rawText = document.getElementById('paste-json-input').value.trim();
-            if (!rawText) {
-                alert("Please paste your JSON text into the box first.");
-                return;
-            }
+            if (!rawText) { alert("Please paste JSON text first."); return; }
             try {
-                const parsed = JSON.parse(rawText);
-                db = sanitizeDB(parsed);
+                db = sanitizeDB(JSON.parse(rawText));
                 save();
                 alert("Data restored successfully!");
                 location.reload();
             } catch(err) {
-                alert("Failed to parse pasted text. Please make sure you copied the entire JSON block. Error: " + err.message);
+                alert("Failed to parse pasted text: " + err.message);
             }
         }
 
