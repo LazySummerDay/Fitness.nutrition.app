@@ -282,6 +282,36 @@
             const n = prompt("Workout Name:"); if(n) { db.routines.push({ id: Date.now(), name: n, collapsed: false, exercises: [] }); save(); }
         }
 
+        function renameWorkout(rId) {
+            const routine = db.routines.find(r => r.id === rId);
+            if (!routine) return;
+            const newName = prompt("Rename Workout:", routine.name);
+            if (newName && newName.trim()) {
+                routine.name = newName.trim();
+                save();
+            }
+        }
+
+        function moveWorkout(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= db.routines.length) return;
+            const temp = db.routines[index];
+            db.routines[index] = db.routines[targetIndex];
+            db.routines[targetIndex] = temp;
+            save();
+        }
+
+        function moveExercise(rId, exIndex, direction) {
+            const routine = db.routines.find(r => r.id === rId);
+            if (!routine) return;
+            const targetIndex = exIndex + direction;
+            if (targetIndex < 0 || targetIndex >= routine.exercises.length) return;
+            const temp = routine.exercises[exIndex];
+            routine.exercises[exIndex] = routine.exercises[targetIndex];
+            routine.exercises[targetIndex] = temp;
+            save();
+        }
+
         function toggleCollapse(id) {
             const r = db.routines.find(x => x.id === id); if(r) { r.collapsed = !r.collapsed; save(); }
         }
@@ -413,12 +443,14 @@
 
         function renderWorkouts() {
             const container = document.getElementById('workout-container'); if(!container) return;
-            container.innerHTML = db.routines.map(r => `
+            container.innerHTML = db.routines.map((r, rIdx) => `
                 <div class="card ${r.collapsed ? 'collapsed' : ''}">
                     <div class="workout-header" onclick="toggleCollapse(${r.id})">
                         <h2 style="margin:0">${r.name}</h2>
-                        <div style="display:flex; align-items:center; gap:15px;">
-                            <span class="collapse-icon">▼</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${rIdx > 0 ? `<span class="action-icon" onclick="event.stopPropagation(); moveWorkout(${rIdx}, -1)">▲</span>` : ''}
+                            ${rIdx < db.routines.length - 1 ? `<span class="action-icon" onclick="event.stopPropagation(); moveWorkout(${rIdx}, 1)">▼</span>` : ''}
+                            <span class="action-icon" onclick="event.stopPropagation(); renameWorkout(${r.id})" style="color:var(--primary);">✎</span>
                             <span onclick="event.stopPropagation(); if(confirm('Permanently delete the entire ${r.name} category?')){db.routines=db.routines.filter(x=>x.id!==${r.id});save()}" style="color:var(--error); opacity:0.5; font-size:18px;">✕</span>
                         </div>
                     </div>
@@ -429,9 +461,11 @@
                                     <div>
                                         <strong style="font-size: 15px;">${ex.name}</strong>${ex.weight ? `<span style="font-size: 12px; color: var(--secondary); margin-left: 8px;">(${ex.weight})</span>` : ''}
                                     </div>
-                                    <div style="display:flex; gap:10px; align-items:center;">
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        ${i > 0 ? `<span class="action-icon" onclick="moveExercise(${r.id}, ${i}, -1)">▲</span>` : ''}
+                                        ${i < r.exercises.length - 1 ? `<span class="action-icon" onclick="moveExercise(${r.id}, ${i}, 1)">▼</span>` : ''}
                                         <span class="action-icon" onclick="editExercise(${r.id},${i})">✎</span>
-                                        <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="color:var(--error); opacity:0.6; cursor:pointer; font-weight:bold;">✕</span>
+                                        <span onclick="db.routines.find(x=>x.id==${r.id}).exercises.splice(${i},1);save()" style="color:var(--error); opacity:0.6; cursor:pointer; font-weight:bold; padding:5px;">✕</span>
                                     </div>
                                 </div>
 
@@ -533,7 +567,7 @@
             renderWorkouts();
         }
 
-        // --- OPTIMIZED BLISTERING FAST FOOD SEARCH (GrapheneOS Friendly) ---
+        // --- OPTIMIZED BLISTERING FAST FOOD SEARCH ---
         document.getElementById('food-input').addEventListener('input', (e) => {
             const q = e.target.value.toLowerCase().trim();
             const resultsDiv = document.getElementById('food-results');
@@ -544,7 +578,7 @@
                 const f = db.customFoods[i];
                 if(f.name.toLowerCase().includes(q)) {
                     matches.push({ f, idx: i });
-                    if(matches.length >= 25) break; // Cap results instantly to prevent mobile UI freeze
+                    if(matches.length >= 25) break;
                 }
             }
 
