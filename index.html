@@ -99,8 +99,8 @@
             <button class="main-btn" style="background:var(--secondary);" onclick="logBodyWeight()">Log Weight Entry</button>
         </div>
         <div class="card">
-            <h3 style="margin-top:0">2-Week Saved History</h3>
-            <div id="weight-history-container"></div>
+            <h3 style="margin-top:0">12-Month Saved History</h3>
+            <div id="weight-history-container" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -209,7 +209,7 @@
             if(!dateVal || !weightVal) { alert("Please enter both Date and Weight."); return; }
 
             db.weightHistory.unshift({ id: Date.now(), date: dateVal, weight: weightVal });
-            db.weightHistory = db.weightHistory.slice(0, 14);
+            db.weightHistory = db.weightHistory.slice(0, 365);
             document.getElementById('weight-value-input').value = '';
             document.getElementById('weight-date-input').value = getFormattedToday();
             save();
